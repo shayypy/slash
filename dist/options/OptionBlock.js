@@ -119,7 +119,13 @@ function OptionBlock({type, _key, inSubCommand, setters}) {
     onChange: (e) => updateLocalOption({
       required: e.target.checked ? true : void 0
     })
-  }, "Required"), /* @__PURE__ */ React.createElement(Button, {
+  }, "Required"), ["String", "Integer", "Number"].indexOf(type) != -1 && /* @__PURE__ */ React.createElement(Checkbox, {
+    size: "lg",
+    colorScheme: "blue",
+    onChange: (e) => updateLocalOption({
+      autocomplete: e.target.checked ? true : void 0
+    })
+  }, "Autocomplete"), /* @__PURE__ */ React.createElement(Button, {
     mx: "1",
     mt: "4",
     w: "32",

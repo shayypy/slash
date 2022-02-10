@@ -1,34 +1,5 @@
 import { c as createCommonjsModule, a as commonjsGlobal, r as react } from './index-210ebed7.js';
 
-// Number assertions
-function isNumber(value) {
-  return typeof value === "number";
-}
-
-function isArray(value) {
-  return Array.isArray(value);
-}
-
-function isFunction(value) {
-  return typeof value === "function";
-} // Generic assertions
-
-function isObject(value) {
-  var type = typeof value;
-  return value != null && (type === "object" || type === "function") && !isArray(value);
-}
-function isEmptyObject(value) {
-  return isObject(value) && Object.keys(value).length === 0;
-}
-
-function isString(value) {
-  return Object.prototype.toString.call(value) === "[object String]";
-}
-function isCssVar(value) {
-  return /^var\(--.+\)$/.test(value);
-} // Empty assertions
-var __DEV__ = "production" !== "production";
-
 var lodash_mergewith = createCommonjsModule(function (module, exports) {
 /**
  * Lodash (Custom Build) <https://lodash.com/>
@@ -2009,23 +1980,47 @@ function stubFalse() {
 module.exports = mergeWith;
 });
 
-function omit(object, keys) {
-  var result = {};
-  Object.keys(object).forEach(key => {
-    if (keys.includes(key)) return;
-    result[key] = object[key];
-  });
-  return result;
+var ColorModeContext = /*#__PURE__*/react.createContext({});
+/**
+ * React hook that reads from `ColorModeProvider` context
+ * Returns the color mode and function to toggle it
+ */
+
+
+var useColorMode = function useColorMode() {
+  var context = react.useContext(ColorModeContext);
+
+  if (context === undefined) {
+    throw new Error("useColorMode must be used within a ColorModeProvider");
+  }
+
+  return context;
+};
+
+// Number assertions
+function isNumber(value) {
+  return typeof value === "number";
 }
-function pick(object, keys) {
-  var result = {};
-  keys.forEach(key => {
-    if (key in object) {
-      result[key] = object[key];
-    }
-  });
-  return result;
+
+function isArray(value) {
+  return Array.isArray(value);
 }
+
+function isFunction(value) {
+  return typeof value === "function";
+} // Generic assertions
+
+function isObject(value) {
+  var type = typeof value;
+  return value != null && (type === "object" || type === "function") && !isArray(value);
+}
+
+function isString(value) {
+  return Object.prototype.toString.call(value) === "[object String]";
+}
+function isCssVar(value) {
+  return /^var\(--.+\)$/.test(value);
+} // Empty assertions
 /**
  * Get value from a deeply nested object using a string path.
  * Memoizes the value.
@@ -2044,10 +2039,10 @@ function get(obj, path, fallback, index) {
 
   return obj === undefined ? fallback : obj;
 }
-var memoize = fn => {
+var memoize = function memoize(fn) {
   var cache = new WeakMap();
 
-  var memoizedFn = (obj, path, fallback, index) => {
+  var memoizedFn = function memoizedFn(obj, path, fallback, index) {
     if (typeof obj === "undefined") {
       return fn(obj, path, fallback);
     }
@@ -2070,67 +2065,8 @@ var memoize = fn => {
   return memoizedFn;
 };
 var memoizedGet = memoize(get);
-
-/**
- * Returns the items of an object that meet the condition specified in a callback function.
- *
- * @param object the object to loop through
- * @param fn The filter function
- */
-function objectFilter(object, fn) {
-  var result = {};
-  Object.keys(object).forEach(key => {
-    var value = object[key];
-    var shouldPass = fn(value, key, object);
-
-    if (shouldPass) {
-      result[key] = value;
-    }
-  });
-  return result;
-}
-var filterUndefined = object => objectFilter(object, val => val !== null && val !== undefined);
-var objectKeys = obj => Object.keys(obj);
-/**
- * Object.entries polyfill for Nodev10 compatibility
- */
-
-var fromEntries = entries => entries.reduce((carry, _ref) => {
-  var [key, value] = _ref;
-  carry[key] = value;
-  return carry;
-}, {});
-
-function isElement(el) {
-  return el != null && typeof el == "object" && "nodeType" in el && el.nodeType === Node.ELEMENT_NODE;
-}
-function isHTMLElement(el) {
-  var _el$ownerDocument$def;
-
-  if (!isElement(el)) {
-    return false;
-  }
-
-  var win = (_el$ownerDocument$def = el.ownerDocument.defaultView) != null ? _el$ownerDocument$def : window;
-  return el instanceof win.HTMLElement;
-}
-function getOwnerDocument(node) {
-  var _node$ownerDocument;
-
-  return isElement(node) ? (_node$ownerDocument = node.ownerDocument) != null ? _node$ownerDocument : document : document;
-}
-function canUseDOM() {
-  return !!(typeof window !== "undefined" && window.document && window.document.createElement);
-}
-var isBrowser = canUseDOM();
-var dataAttr = condition => condition ? "" : undefined;
-var ariaAttr = condition => condition ? true : undefined;
-var cx = function cx() {
-  for (var _len = arguments.length, classNames = new Array(_len), _key = 0; _key < _len; _key++) {
-    classNames[_key] = arguments[_key];
-  }
-
-  return classNames.filter(Boolean).join(" ");
+var objectKeys = function objectKeys(obj) {
+  return Object.keys(obj);
 };
 
 /* eslint-disable no-nested-ternary */
@@ -2139,78 +2075,42 @@ function runIfFn(valueOrFn) {
     args[_key - 1] = arguments[_key];
   }
 
-  return isFunction(valueOrFn) ? valueOrFn(...args) : valueOrFn;
+  return isFunction(valueOrFn) ? valueOrFn.apply(void 0, args) : valueOrFn;
 }
-function callAllHandlers() {
-  for (var _len2 = arguments.length, fns = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-    fns[_key2] = arguments[_key2];
-  }
 
-  return function func(event) {
-    fns.some(fn => {
-      fn == null ? void 0 : fn(event);
-      return event == null ? void 0 : event.defaultPrevented;
-    });
-  };
-}
-function callAll() {
-  for (var _len3 = arguments.length, fns = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-    fns[_key3] = arguments[_key3];
-  }
+var breakpoints = Object.freeze(["base", "sm", "md", "lg", "xl", "2xl"]);
 
-  return function mergedFn(arg) {
-    fns.forEach(fn => {
-      fn == null ? void 0 : fn(arg);
-    });
-  };
-}
-function once(fn) {
-  var result;
-  return function func() {
-    if (fn) {
-      for (var _len5 = arguments.length, args = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-        args[_key5] = arguments[_key5];
+function _extends() {
+  _extends = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
       }
-
-      result = fn.apply(this, args);
-      fn = null;
     }
 
-    return result;
+    return target;
   };
+
+  return _extends.apply(this, arguments);
 }
-var noop = () => {};
-var warn = once(options => () => {
-  var {
-    condition,
-    message
-  } = options;
 
-  if (condition && __DEV__) {
-    console.warn(message);
-  }
-});
-var pipe = function pipe() {
-  for (var _len6 = arguments.length, fns = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-    fns[_key6] = arguments[_key6];
-  }
-
-  return v => fns.reduce((a, b) => b(a), v);
-};
-
-var tokenToCSSVar = (scale, value) => theme => {
-  var valueStr = String(value);
-  var key = scale ? scale + "." + valueStr : valueStr;
-  return isObject(theme.__cssMap) && key in theme.__cssMap ? theme.__cssMap[key].varRef : value;
+var tokenToCSSVar = function tokenToCSSVar(scale, value) {
+  return function (theme) {
+    var valueStr = String(value);
+    var key = scale ? scale + "." + valueStr : valueStr;
+    return isObject(theme.__cssMap) && key in theme.__cssMap ? theme.__cssMap[key].varRef : value;
+  };
 };
 function createTransform(options) {
-  var {
-    scale,
-    transform,
-    compose
-  } = options;
+  var scale = options.scale,
+      transform = options.transform,
+      compose = options.compose;
 
-  var fn = (value, theme) => {
+  var fn = function fn(value, theme) {
     var _transform;
 
     var _value = tokenToCSSVar(scale, value)(theme);
@@ -2228,42 +2128,42 @@ function createTransform(options) {
 }
 
 function toConfig(scale, transform) {
-  return property => {
+  return function (property) {
     var result = {
-      property,
-      scale
+      property: property,
+      scale: scale
     };
     result.transform = createTransform({
-      scale,
-      transform
+      scale: scale,
+      transform: transform
     });
     return result;
   };
 }
 
-var getRtl = (_ref) => {
-  var {
-    rtl,
-    ltr
-  } = _ref;
-  return theme => theme.direction === "rtl" ? rtl : ltr;
+var getRtl = function getRtl(_ref) {
+  var rtl = _ref.rtl,
+      ltr = _ref.ltr;
+  return function (theme) {
+    return theme.direction === "rtl" ? rtl : ltr;
+  };
 };
 
 function logical(options) {
-  var {
-    property,
-    scale,
-    transform
-  } = options;
+  var property = options.property,
+      scale = options.scale,
+      transform = options.transform;
   return {
-    scale,
+    scale: scale,
     property: getRtl(property),
     transform: scale ? createTransform({
-      scale,
+      scale: scale,
       compose: transform
     }) : transform
   };
 }
+
+var _spaceXTemplate, _spaceYTemplate;
 
 /**
  * The CSS transform order following the upcoming spec from CSSWG
@@ -2273,10 +2173,10 @@ function logical(options) {
  */
 var transformTemplate = ["rotate(var(--chakra-rotate, 0))", "scaleX(var(--chakra-scale-x, 1))", "scaleY(var(--chakra-scale-y, 1))", "skewX(var(--chakra-skew-x, 0))", "skewY(var(--chakra-skew-y, 0))"];
 function getTransformTemplate() {
-  return ["translateX(var(--chakra-translate-x, 0))", "translateY(var(--chakra-translate-y, 0))", ...transformTemplate].join(" ");
+  return ["translateX(var(--chakra-translate-x, 0))", "translateY(var(--chakra-translate-y, 0))"].concat(transformTemplate).join(" ");
 }
 function getTransformGpuTemplate() {
-  return ["translate3d(var(--chakra-translate-x, 0), var(--chakra-translate-y, 0), 0)", ...transformTemplate].join(" ");
+  return ["translate3d(var(--chakra-translate-x, 0), var(--chakra-translate-y, 0), 0)"].concat(transformTemplate).join(" ");
 }
 var filterTemplate = {
   "--chakra-blur": "var(--chakra-empty,/*!*/ /*!*/)",
@@ -2321,34 +2221,102 @@ var flexDirectionTemplate = {
   }
 };
 var owlSelector = "& > :not(style) ~ :not(style)";
-var spaceXTemplate = {
-  [owlSelector]: {
-    marginInlineStart: "calc(var(--chakra-space-x) * calc(1 - var(--chakra-space-x-reverse)))",
-    marginInlineEnd: "calc(var(--chakra-space-x) * var(--chakra-space-x-reverse))"
+var spaceXTemplate = (_spaceXTemplate = {}, _spaceXTemplate[owlSelector] = {
+  marginInlineStart: "calc(var(--chakra-space-x) * calc(1 - var(--chakra-space-x-reverse)))",
+  marginInlineEnd: "calc(var(--chakra-space-x) * var(--chakra-space-x-reverse))"
+}, _spaceXTemplate);
+var spaceYTemplate = (_spaceYTemplate = {}, _spaceYTemplate[owlSelector] = {
+  marginTop: "calc(var(--chakra-space-y) * calc(1 - var(--chakra-space-y-reverse)))",
+  marginBottom: "calc(var(--chakra-space-y) * var(--chakra-space-y-reverse))"
+}, _spaceYTemplate);
+
+function _setPrototypeOf(o, p) {
+  _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+    o.__proto__ = p;
+    return o;
+  };
+
+  return _setPrototypeOf(o, p);
+}
+
+function _inherits(subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function");
   }
-};
-var spaceYTemplate = {
-  [owlSelector]: {
-    marginTop: "calc(var(--chakra-space-y) * calc(1 - var(--chakra-space-y-reverse)))",
-    marginBottom: "calc(var(--chakra-space-y) * var(--chakra-space-y-reverse))"
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) _setPrototypeOf(subClass, superClass);
+}
+
+function _wrapRegExp() {
+  _wrapRegExp = function (re, groups) {
+    return new BabelRegExp(re, undefined, groups);
+  };
+
+  var _super = RegExp.prototype;
+
+  var _groups = new WeakMap();
+
+  function BabelRegExp(re, flags, groups) {
+    var _this = new RegExp(re, flags);
+
+    _groups.set(_this, groups || _groups.get(re));
+
+    return _setPrototypeOf(_this, BabelRegExp.prototype);
   }
-};
 
-function _wrapRegExp(re, groups) { _wrapRegExp = function _wrapRegExp(re, groups) { return new BabelRegExp(re, undefined, groups); }; var _RegExp = _wrapNativeSuper(RegExp); var _super = RegExp.prototype; var _groups = new WeakMap(); function BabelRegExp(re, flags, groups) { var _this = _RegExp.call(this, re, flags); _groups.set(_this, groups || _groups.get(re)); return _this; } _inherits(BabelRegExp, _RegExp); BabelRegExp.prototype.exec = function (str) { var result = _super.exec.call(this, str); if (result) result.groups = buildGroups(result, this); return result; }; BabelRegExp.prototype[Symbol.replace] = function (str, substitution) { if (typeof substitution === "string") { var groups = _groups.get(this); return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) { return "$" + groups[name]; })); } else if (typeof substitution === "function") { var _this = this; return _super[Symbol.replace].call(this, str, function () { var args = []; args.push.apply(args, arguments); if (typeof args[args.length - 1] !== "object") { args.push(buildGroups(args, _this)); } return substitution.apply(this, args); }); } else { return _super[Symbol.replace].call(this, str, substitution); } }; function buildGroups(result, re) { var g = _groups.get(re); return Object.keys(g).reduce(function (groups, name) { groups[name] = result[g[name]]; return groups; }, Object.create(null)); } return _wrapRegExp.apply(this, arguments); }
+  _inherits(BabelRegExp, RegExp);
 
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+  BabelRegExp.prototype.exec = function (str) {
+    var result = _super.exec.call(this, str);
 
-function _wrapNativeSuper(Class) { var _cache = typeof Map === "function" ? new Map() : undefined; _wrapNativeSuper = function _wrapNativeSuper(Class) { if (Class === null || !_isNativeFunction(Class)) return Class; if (typeof Class !== "function") { throw new TypeError("Super expression must either be null or a function"); } if (typeof _cache !== "undefined") { if (_cache.has(Class)) return _cache.get(Class); _cache.set(Class, Wrapper); } function Wrapper() { return _construct(Class, arguments, _getPrototypeOf(this).constructor); } Wrapper.prototype = Object.create(Class.prototype, { constructor: { value: Wrapper, enumerable: false, writable: true, configurable: true } }); return _setPrototypeOf(Wrapper, Class); }; return _wrapNativeSuper(Class); }
+    if (result) result.groups = buildGroups(result, this);
+    return result;
+  };
 
-function _construct(Parent, args, Class) { if (_isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+  BabelRegExp.prototype[Symbol.replace] = function (str, substitution) {
+    if (typeof substitution === "string") {
+      var groups = _groups.get(this);
 
-function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+      return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) {
+        return "$" + groups[name];
+      }));
+    } else if (typeof substitution === "function") {
+      var _this = this;
 
-function _isNativeFunction(fn) { return Function.toString.call(fn).indexOf("[native code]") !== -1; }
+      return _super[Symbol.replace].call(this, str, function () {
+        var args = arguments;
 
-function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+        if (typeof args[args.length - 1] !== "object") {
+          args = [].slice.call(args);
+          args.push(buildGroups(args, _this));
+        }
 
-function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+        return substitution.apply(this, args);
+      });
+    } else {
+      return _super[Symbol.replace].call(this, str, substitution);
+    }
+  };
+
+  function buildGroups(result, re) {
+    var g = _groups.get(re);
+
+    return Object.keys(g).reduce(function (groups, name) {
+      groups[name] = result[g[name]];
+      return groups;
+    }, Object.create(null));
+  }
+
+  return _wrapRegExp.apply(this, arguments);
+}
+
 var directionMap = {
   "to-t": "to top",
   "to-tr": "to top right",
@@ -2362,7 +2330,9 @@ var directionMap = {
 var valueSet = new Set(Object.values(directionMap));
 var globalSet = new Set(["none", "-moz-initial", "inherit", "initial", "revert", "unset"]);
 
-var trimSpace = str => str.trim();
+var trimSpace = function trimSpace(str) {
+  return str.trim();
+};
 
 function parseGradient(value, theme) {
   var _regex$exec$groups, _regex$exec;
@@ -2374,67 +2344,75 @@ function parseGradient(value, theme) {
     values: 2
   });
 
-  var {
-    type,
-    values
-  } = (_regex$exec$groups = (_regex$exec = regex.exec(value)) == null ? void 0 : _regex$exec.groups) != null ? _regex$exec$groups : {};
+  var _ref = (_regex$exec$groups = (_regex$exec = regex.exec(value)) == null ? void 0 : _regex$exec.groups) != null ? _regex$exec$groups : {},
+      type = _ref.type,
+      values = _ref.values;
+
   if (!type || !values) return value;
 
   var _type = type.includes("-gradient") ? type : type + "-gradient";
 
-  var [maybeDirection, ...stops] = values.split(",").map(trimSpace).filter(Boolean);
+  var _values$split$map$fil = values.split(",").map(trimSpace).filter(Boolean),
+      maybeDirection = _values$split$map$fil[0],
+      stops = _values$split$map$fil.slice(1);
+
   if ((stops == null ? void 0 : stops.length) === 0) return value;
   var direction = maybeDirection in directionMap ? directionMap[maybeDirection] : maybeDirection;
   stops.unshift(direction);
 
-  var _values = stops.map(stop => {
+  var _values = stops.map(function (stop) {
     // if stop is valid shorthand direction, return it
     if (valueSet.has(stop)) return stop;
     var firstStop = stop.indexOf(" "); // color stop could be `red.200 20%` based on css gradient spec
 
-    var [_color, _stop] = firstStop !== -1 ? [stop.substr(0, firstStop), stop.substr(firstStop + 1)] : [stop];
+    var _ref2 = firstStop !== -1 ? [stop.substr(0, firstStop), stop.substr(firstStop + 1)] : [stop],
+        _color = _ref2[0],
+        _stop = _ref2[1];
 
     var _stopOrFunc = isCSSFunction(_stop) ? _stop : _stop && _stop.split(" "); // else, get and transform the color token or css value
 
 
     var key = "colors." + _color;
     var color = key in theme.__cssMap ? theme.__cssMap[key].varRef : _color;
-    return _stopOrFunc ? [color, _stopOrFunc].join(" ") : color;
+    return _stopOrFunc ? [color].concat(Array.isArray(_stopOrFunc) ? _stopOrFunc : [_stopOrFunc]).join(" ") : color;
   });
 
   return _type + "(" + _values.join(", ") + ")";
 }
-var isCSSFunction = value => {
+var isCSSFunction = function isCSSFunction(value) {
   return isString(value) && value.includes("(") && value.includes(")");
 };
-var gradientTransform = (value, theme) => parseGradient(value, theme != null ? theme : {});
+var gradientTransform = function gradientTransform(value, theme) {
+  return parseGradient(value, theme != null ? theme : {});
+};
 
-var analyzeCSSValue = value => {
+var analyzeCSSValue = function analyzeCSSValue(value) {
   var num = parseFloat(value.toString());
   var unit = value.toString().replace(String(num), "");
   return {
     unitless: !unit,
     value: num,
-    unit
+    unit: unit
   };
 };
 
-var wrap = str => value => str + "(" + value + ")";
+var wrap = function wrap(str) {
+  return function (value) {
+    return str + "(" + value + ")";
+  };
+};
 
 var transformFunctions = {
-  filter(value) {
+  filter: function filter(value) {
     return value !== "auto" ? value : filterTemplate;
   },
-
-  backdropFilter(value) {
+  backdropFilter: function backdropFilter(value) {
     return value !== "auto" ? value : backdropFilterTemplate;
   },
-
-  ring(value) {
+  ring: function ring(value) {
     return getRingTemplate(transformFunctions.px(value));
   },
-
-  bgClip(value) {
+  bgClip: function bgClip(value) {
     return value === "text" ? {
       color: "transparent",
       backgroundClip: "text"
@@ -2442,39 +2420,34 @@ var transformFunctions = {
       backgroundClip: value
     };
   },
-
-  transform(value) {
+  transform: function transform(value) {
     if (value === "auto") return getTransformTemplate();
     if (value === "auto-gpu") return getTransformGpuTemplate();
     return value;
   },
-
-  px(value) {
+  px: function px(value) {
     if (value == null) return value;
-    var {
-      unitless
-    } = analyzeCSSValue(value);
+
+    var _analyzeCSSValue = analyzeCSSValue(value),
+        unitless = _analyzeCSSValue.unitless;
+
     return unitless || isNumber(value) ? value + "px" : value;
   },
-
-  fraction(value) {
+  fraction: function fraction(value) {
     return !isNumber(value) || value > 1 ? value : value * 100 + "%";
   },
-
-  float(value, theme) {
+  "float": function float(value, theme) {
     var map = {
       left: "right",
       right: "left"
     };
     return theme.direction === "rtl" ? map[value] : value;
   },
-
-  degree(value) {
+  degree: function degree(value) {
     if (isCssVar(value) || value == null) return value;
     var unitless = isString(value) && !value.endsWith("deg");
     return isNumber(value) || unitless ? value + "deg" : value;
   },
-
   gradient: gradientTransform,
   blur: wrap("blur"),
   opacity: wrap("opacity"),
@@ -2486,14 +2459,12 @@ var transformFunctions = {
   invert: wrap("invert"),
   saturate: wrap("saturate"),
   sepia: wrap("sepia"),
-
-  bgImage(value) {
+  bgImage: function bgImage(value) {
     if (value == null) return value;
     var prevent = isCSSFunction(value) || globalSet.has(value);
     return !prevent ? "url(" + value + ")" : value;
   },
-
-  outline(value) {
+  outline: function outline(value) {
     var isNoneOrZero = String(value) === "0" || String(value) === "none";
     return value !== null && isNoneOrZero ? {
       outline: "2px solid transparent",
@@ -2502,14 +2473,13 @@ var transformFunctions = {
       outline: value
     };
   },
-
-  flexDirection(value) {
+  flexDirection: function flexDirection(value) {
     var _flexDirectionTemplat;
 
-    var {
-      space,
-      divide
-    } = (_flexDirectionTemplat = flexDirectionTemplate[value]) != null ? _flexDirectionTemplat : {};
+    var _ref = (_flexDirectionTemplat = flexDirectionTemplate[value]) != null ? _flexDirectionTemplat : {},
+        space = _ref.space,
+        divide = _ref.divide;
+
     var result = {
       flexDirection: value
     };
@@ -2517,10 +2487,8 @@ var transformFunctions = {
     if (divide) result[divide] = 1;
     return result;
   }
-
 };
 
-function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 var t = {
   borderWidths: toConfig("borderWidths"),
   borderStyles: toConfig("borderStyles"),
@@ -2529,37 +2497,33 @@ var t = {
   radii: toConfig("radii", transformFunctions.px),
   space: toConfig("space", transformFunctions.px),
   spaceT: toConfig("space", transformFunctions.px),
-
-  degreeT(property) {
+  degreeT: function degreeT(property) {
     return {
-      property,
+      property: property,
       transform: transformFunctions.degree
     };
   },
-
-  prop(property, scale, transform) {
+  prop: function prop(property, scale, transform) {
     return _extends({
-      property,
-      scale
+      property: property,
+      scale: scale
     }, scale && {
       transform: createTransform({
-        scale,
-        transform
+        scale: scale,
+        transform: transform
       })
     });
   },
-
-  propT(property, transform) {
+  propT: function propT(property, transform) {
     return {
-      property,
-      transform
+      property: property,
+      transform: transform
     };
   },
-
   sizes: toConfig("sizes", transformFunctions.px),
   sizesT: toConfig("sizes", transformFunctions.fraction),
   shadows: toConfig("shadows"),
-  logical,
+  logical: logical,
   blur: toConfig("blur", transformFunctions.blur)
 };
 
@@ -2776,21 +2740,25 @@ var flexbox = {
     transform: transformFunctions.flexDirection
   },
   experimental_spaceX: {
-    static: spaceXTemplate,
+    "static": spaceXTemplate,
     transform: createTransform({
       scale: "space",
-      transform: value => value !== null ? {
-        "--chakra-space-x": value
-      } : null
+      transform: function transform(value) {
+        return value !== null ? {
+          "--chakra-space-x": value
+        } : null;
+      }
     })
   },
   experimental_spaceY: {
-    static: spaceYTemplate,
+    "static": spaceYTemplate,
     transform: createTransform({
       scale: "space",
-      transform: value => value != null ? {
-        "--chakra-space-y": value
-      } : null
+      transform: function transform(value) {
+        return value != null ? {
+          "--chakra-space-y": value
+        } : null;
+      }
     })
   },
   flex: true,
@@ -2803,7 +2771,10 @@ var flexbox = {
   order: true,
   placeItems: true,
   placeContent: true,
-  placeSelf: true
+  placeSelf: true,
+  gap: t.space("gap"),
+  rowGap: t.space("rowGap"),
+  columnGap: t.space("columnGap")
 };
 Object.assign(flexbox, {
   flexDir: flexbox.flexDirection
@@ -2867,7 +2838,7 @@ var layout = {
   verticalAlign: true,
   boxSizing: true,
   boxDecorationBreak: true,
-  float: t.propT("float", transformFunctions.float),
+  "float": t.propT("float", transformFunctions["float"]),
   objectFit: true,
   objectPosition: true,
   visibility: true,
@@ -2918,7 +2889,7 @@ var srFocusable = {
   whiteSpace: "normal"
 };
 
-var getWithPriority = (theme, key, styles) => {
+var getWithPriority = function getWithPriority(theme, key, styles) {
   var result = {};
   var obj = memoizedGet(theme, key, {});
 
@@ -2932,24 +2903,29 @@ var getWithPriority = (theme, key, styles) => {
 
 var others = {
   srOnly: {
-    transform(value) {
+    transform: function transform(value) {
       if (value === true) return srOnly;
       if (value === "focusable") return srFocusable;
       return {};
     }
-
   },
   layerStyle: {
     processResult: true,
-    transform: (value, theme, styles) => getWithPriority(theme, "layerStyles." + value, styles)
+    transform: function transform(value, theme, styles) {
+      return getWithPriority(theme, "layerStyles." + value, styles);
+    }
   },
   textStyle: {
     processResult: true,
-    transform: (value, theme, styles) => getWithPriority(theme, "textStyles." + value, styles)
+    transform: function transform(value, theme, styles) {
+      return getWithPriority(theme, "textStyles." + value, styles);
+    }
   },
   apply: {
     processResult: true,
-    transform: (value, theme, styles) => getWithPriority(theme, value, styles)
+    transform: function transform(value, theme, styles) {
+      return getWithPriority(theme, value, styles);
+    }
   }
 };
 
@@ -2957,7 +2933,7 @@ var position = {
   position: true,
   pos: t.prop("position"),
   zIndex: t.prop("zIndex", "zIndices"),
-  inset: t.spaceT(["top", "right", "bottom", "left"]),
+  inset: t.spaceT("inset"),
   insetX: t.spaceT(["left", "right"]),
   insetInline: t.spaceT("insetInline"),
   insetY: t.spaceT(["top", "bottom"]),
@@ -3111,7 +3087,7 @@ var typography = {
   textTransform: true,
   whiteSpace: true,
   noOfLines: {
-    static: {
+    "static": {
       overflow: "hidden",
       textOverflow: "ellipsis",
       display: "-webkit-box",
@@ -3122,7 +3098,7 @@ var typography = {
     property: "--chakra-line-clamp"
   },
   isTruncated: {
-    transform(value) {
+    transform: function transform(value) {
       if (value === true) {
         return {
           overflow: "hidden",
@@ -3131,26 +3107,123 @@ var typography = {
         };
       }
     }
-
   }
 };
 /**
  * Types for typography related CSS properties
  */
 
-var group = {
-  hover: selector => selector + ":hover &, " + selector + "[data-hover] &",
-  focus: selector => selector + ":focus &, " + selector + "[data-focus] &",
-  active: selector => selector + ":active &, " + selector + "[data-active] &",
-  disabled: selector => selector + ":disabled &, " + selector + "[data-disabled] &",
-  invalid: selector => selector + ":invalid &, " + selector + "[data-invalid] &",
-  checked: selector => selector + ":checked &, " + selector + "[data-checked] &",
-  indeterminate: selector => selector + ":indeterminate &, " + selector + "[aria-checked=mixed] &, " + selector + "[data-indeterminate] &",
-  readOnly: selector => selector + ":read-only &, " + selector + "[readonly] &, " + selector + "[data-read-only] &",
-  expanded: selector => selector + ":read-only &, " + selector + "[aria-expanded=true] &, " + selector + "[data-expanded] &"
+var scroll = {
+  scrollBehavior: true,
+  scrollSnapAlign: true,
+  scrollSnapStop: true,
+  scrollSnapType: true,
+  // scroll margin
+  scrollMargin: t.spaceT("scrollMargin"),
+  scrollMarginTop: t.spaceT("scrollMarginTop"),
+  scrollMarginBottom: t.spaceT("scrollMarginBottom"),
+  scrollMarginLeft: t.spaceT("scrollMarginLeft"),
+  scrollMarginRight: t.spaceT("scrollMarginRight"),
+  scrollMarginX: t.spaceT(["scrollMarginLeft", "scrollMarginRight"]),
+  scrollMarginY: t.spaceT(["scrollMarginTop", "scrollMarginBottom"]),
+  // scroll padding
+  scrollPadding: t.spaceT("scrollPadding"),
+  scrollPaddingTop: t.spaceT("scrollPaddingTop"),
+  scrollPaddingBottom: t.spaceT("scrollPaddingBottom"),
+  scrollPaddingLeft: t.spaceT("scrollPaddingLeft"),
+  scrollPaddingRight: t.spaceT("scrollPaddingRight"),
+  scrollPaddingX: t.spaceT(["scrollPaddingLeft", "scrollPaddingRight"]),
+  scrollPaddingY: t.spaceT(["scrollPaddingTop", "scrollPaddingBottom"])
 };
 
-var toGroup = fn => merge(fn, "[role=group]", "[data-group]", ".group");
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+
+  for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+
+  return arr2;
+}
+
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+
+function _createForOfIteratorHelperLoose(o, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+  if (it) return (it = it.call(o)).next.bind(it);
+
+  if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+    if (it) o = it;
+    var i = 0;
+    return function () {
+      if (i >= o.length) return {
+        done: true
+      };
+      return {
+        done: false,
+        value: o[i++]
+      };
+    };
+  }
+
+  throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+
+var state = {
+  hover: function hover(str, post) {
+    return str + ":hover " + post + ", " + str + "[data-hover] " + post;
+  },
+  focus: function focus(str, post) {
+    return str + ":focus " + post + ", " + str + "[data-focus] " + post;
+  },
+  focusVisible: function focusVisible(str, post) {
+    return str + ":focus-visible " + post;
+  },
+  focusWithin: function focusWithin(str, post) {
+    return str + ":focus-within " + post;
+  },
+  active: function active(str, post) {
+    return str + ":active " + post + ", " + str + "[data-active] " + post;
+  },
+  disabled: function disabled(str, post) {
+    return str + ":disabled " + post + ", " + str + "[data-disabled] " + post;
+  },
+  invalid: function invalid(str, post) {
+    return str + ":invalid " + post + ", " + str + "[data-invalid] " + post;
+  },
+  checked: function checked(str, post) {
+    return str + ":checked " + post + ", " + str + "[data-checked] " + post;
+  },
+  indeterminate: function indeterminate(str, post) {
+    return str + ":indeterminate " + post + ", " + str + "[aria-checked=mixed] " + post + ", " + str + "[data-indeterminate] " + post;
+  },
+  readOnly: function readOnly(str, post) {
+    return str + ":read-only " + post + ", " + str + "[readonly] " + post + ", " + str + "[data-read-only] " + post;
+  },
+  expanded: function expanded(str, post) {
+    return str + ":read-only " + post + ", " + str + "[aria-expanded=true] " + post + ", " + str + "[data-expanded] " + post;
+  },
+  placeholderShown: function placeholderShown(str, post) {
+    return str + ":placeholder-shown " + post;
+  }
+};
+
+var toGroup = function toGroup(fn) {
+  return merge(function (v) {
+    return fn(v, "&");
+  }, "[role=group]", "[data-group]", ".group");
+};
+
+var toPeer = function toPeer(fn) {
+  return merge(function (v) {
+    return fn(v, "~ &");
+  }, "[data-peer]", ".peer");
+};
 
 var merge = function merge(fn) {
   for (var _len = arguments.length, selectors = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
@@ -3187,6 +3260,11 @@ var pseudoSelectors = {
    * - CSS Selector `&:focus-within`
    */
   _focusWithin: "&:focus-within",
+
+  /**
+   * Styles to apply when this element has received focus via tabbing
+   * - CSS Selector `&:focus-visible`
+   */
   _focusVisible: "&:focus-visible",
 
   /**
@@ -3223,6 +3301,10 @@ var pseudoSelectors = {
    * ```
    */
   _after: "&::after",
+
+  /**
+   * Styles for CSS selector `&:empty`
+   */
   _empty: "&:empty",
 
   /**
@@ -3338,39 +3420,99 @@ var pseudoSelectors = {
   _indeterminate: "&:indeterminate, &[aria-checked=mixed], &[data-indeterminate]",
 
   /**
-   * Styles to apply when parent is hovered
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` is hovered
    */
-  _groupHover: toGroup(group.hover),
+  _groupHover: toGroup(state.hover),
 
   /**
-   * Styles to apply when parent is focused
+   * Styles to apply when a sibling element with `.peer` or `data-peer` is hovered
    */
-  _groupFocus: toGroup(group.focus),
+  _peerHover: toPeer(state.hover),
 
   /**
-   * Styles to apply when parent is active
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` is focused
    */
-  _groupActive: toGroup(group.active),
+  _groupFocus: toGroup(state.focus),
 
   /**
-   * Styles to apply when parent is disabled
+   * Styles to apply when a sibling element with `.peer` or `data-peer` is focused
    */
-  _groupDisabled: toGroup(group.disabled),
+  _peerFocus: toPeer(state.focus),
 
   /**
-   * Styles to apply when parent is invalid
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` has visible focus
    */
-  _groupInvalid: toGroup(group.invalid),
+  _groupFocusVisible: toGroup(state.focusVisible),
 
   /**
-   * Styles to apply when parent is checked
+   * Styles to apply when a sibling element with `.peer`or `data-peer` has visible focus
    */
-  _groupChecked: toGroup(group.checked),
+  _peerFocusVisible: toPeer(state.focusVisible),
+
+  /**
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` is active
+   */
+  _groupActive: toGroup(state.active),
+
+  /**
+   * Styles to apply when a sibling element with `.peer` or `data-peer` is active
+   */
+  _peerActive: toPeer(state.active),
+
+  /**
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` is disabled
+   */
+  _groupDisabled: toGroup(state.disabled),
+
+  /**
+   *  Styles to apply when a sibling element with `.peer` or `data-peer` is disabled
+   */
+  _peerDisabled: toPeer(state.disabled),
+
+  /**
+   *  Styles to apply when a parent element with `.group`, `data-group` or `role=group` is invalid
+   */
+  _groupInvalid: toGroup(state.invalid),
+
+  /**
+   *  Styles to apply when a sibling element with `.peer` or `data-peer` is invalid
+   */
+  _peerInvalid: toPeer(state.invalid),
+
+  /**
+   * Styles to apply when a parent element with `.group`, `data-group` or `role=group` is checked
+   */
+  _groupChecked: toGroup(state.checked),
+
+  /**
+   * Styles to apply when a sibling element with `.peer` or `data-peer` is checked
+   */
+  _peerChecked: toPeer(state.checked),
+
+  /**
+   *  Styles to apply when a parent element with `.group`, `data-group` or `role=group` has focus within
+   */
+  _groupFocusWithin: toGroup(state.focusWithin),
+
+  /**
+   *  Styles to apply when a sibling element with `.peer` or `data-peer` has focus within
+   */
+  _peerFocusWithin: toPeer(state.focusWithin),
+
+  /**
+   * Styles to apply when a sibling element with `.peer` or `data-peer` has placeholder shown
+   */
+  _peerPlaceholderShown: toPeer(state.placeholderShown),
 
   /**
    * Styles for CSS Selector `&::placeholder`.
    */
   _placeholder: "&::placeholder",
+
+  /**
+   * Styles for CSS Selector `&:placeholder-shown`.
+   */
+  _placeholderShown: "&:placeholder-shown",
 
   /**
    * Styles for CSS Selector `&:fullscreen`.
@@ -3384,16 +3526,27 @@ var pseudoSelectors = {
 
   /**
    * Styles for CSS Selector `[dir=rtl] &`
-   * It is applied when any parent element has `dir="rtl"`
+   * It is applied when a parent element or this element has `dir="rtl"`
    */
-  _rtl: "[dir=rtl] &",
+  _rtl: "[dir=rtl] &, &[dir=rtl]",
+
+  /**
+   * Styles for CSS Selector `[dir=ltr] &`
+   * It is applied when a parent element or this element has `dir="ltr"`
+   */
+  _ltr: "[dir=ltr] &, &[dir=ltr]",
 
   /**
    * Styles for CSS Selector `@media (prefers-color-scheme: dark)`
-   * used when the user has requested the system
-   * use a light or dark color theme.
+   * It is used when the user has requested the system use a light or dark color theme.
    */
   _mediaDark: "@media (prefers-color-scheme: dark)",
+
+  /**
+   * Styles for CSS Selector `@media (prefers-reduced-motion: reduce)`
+   * It is used when the user has requested the system to reduce the amount of animations.
+   */
+  _mediaReduceMotion: "@media (prefers-reduced-motion: reduce)",
 
   /**
    * Styles for when `data-theme` is applied to any parent of
@@ -3409,14 +3562,15 @@ var pseudoSelectors = {
 };
 var pseudoPropNames = objectKeys(pseudoSelectors);
 
-function _extends$1() { _extends$1 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$1.apply(this, arguments); }
-var systemProps = lodash_mergewith({}, background, border, color, flexbox, layout, filter, ring, interactivity, grid, others, position, effect, space, typography, textDecoration, transform, list, transition);
+var systemProps = lodash_mergewith({}, background, border, color, flexbox, layout, filter, ring, interactivity, grid, others, position, effect, space, scroll, typography, textDecoration, transform, list, transition);
 var layoutSystem = Object.assign({}, space, layout, flexbox, grid, position);
-var propNames = [...objectKeys(systemProps), ...pseudoPropNames];
+var propNames = [].concat(objectKeys(systemProps), pseudoPropNames);
 
-var styleProps = _extends$1({}, systemProps, pseudoSelectors);
+var styleProps = _extends({}, systemProps, pseudoSelectors);
 
-var isStyleProp = prop => prop in styleProps;
+var isStyleProp = function isStyleProp(prop) {
+  return prop in styleProps;
+};
 
 /**
  * Expands an array or object syntax responsive style.
@@ -3429,87 +3583,93 @@ var isStyleProp = prop => prop in styleProps;
  * // => { mx: 1, "@media(min-width:<sm>)": { mx: 2 } }
  */
 
-var expandResponsive = styles => theme => {
-  /**
-   * Before any style can be processed, the user needs to call `toCSSVar`
-   * which analyzes the theme's breakpoint and appends a `__breakpoints` property
-   * to the theme with more details of the breakpoints.
-   *
-   * To learn more, go here: packages/utils/src/responsive.ts #analyzeBreakpoints
-   */
-  if (!theme.__breakpoints) return styles;
-  var {
-    isResponsive,
-    toArrayValue,
-    media: medias
-  } = theme.__breakpoints;
-  var computedStyles = {};
+var expandResponsive = function expandResponsive(styles) {
+  return function (theme) {
+    /**
+     * Before any style can be processed, the user needs to call `toCSSVar`
+     * which analyzes the theme's breakpoint and appends a `__breakpoints` property
+     * to the theme with more details of the breakpoints.
+     *
+     * To learn more, go here: packages/utils/src/responsive.ts #analyzeBreakpoints
+     */
+    if (!theme.__breakpoints) return styles;
+    var _theme$__breakpoints = theme.__breakpoints,
+        isResponsive = _theme$__breakpoints.isResponsive,
+        toArrayValue = _theme$__breakpoints.toArrayValue,
+        medias = _theme$__breakpoints.media;
+    var computedStyles = {};
 
-  for (var key in styles) {
-    var value = runIfFn(styles[key], theme);
-    if (value == null) continue; // converts the object responsive syntax to array syntax
+    for (var key in styles) {
+      var value = runIfFn(styles[key], theme);
+      if (value == null) continue; // converts the object responsive syntax to array syntax
 
-    value = isObject(value) && isResponsive(value) ? toArrayValue(value) : value;
+      value = isObject(value) && isResponsive(value) ? toArrayValue(value) : value;
 
-    if (!Array.isArray(value)) {
-      computedStyles[key] = value;
-      continue;
-    }
-
-    var queries = value.slice(0, medias.length).length;
-
-    for (var index = 0; index < queries; index += 1) {
-      var media = medias == null ? void 0 : medias[index];
-
-      if (!media) {
-        computedStyles[key] = value[index];
+      if (!Array.isArray(value)) {
+        computedStyles[key] = value;
         continue;
       }
 
-      computedStyles[media] = computedStyles[media] || {};
+      var queries = value.slice(0, medias.length).length;
 
-      if (value[index] == null) {
-        continue;
+      for (var index = 0; index < queries; index += 1) {
+        var media = medias == null ? void 0 : medias[index];
+
+        if (!media) {
+          computedStyles[key] = value[index];
+          continue;
+        }
+
+        computedStyles[media] = computedStyles[media] || {};
+
+        if (value[index] == null) {
+          continue;
+        }
+
+        computedStyles[media][key] = value[index];
       }
-
-      computedStyles[media][key] = value[index];
     }
-  }
 
-  return computedStyles;
+    return computedStyles;
+  };
 };
 
-var isCSSVariableTokenValue = (key, value) => key.startsWith("--") && isString(value) && !isCssVar(value);
+var isCSSVariableTokenValue = function isCSSVariableTokenValue(key, value) {
+  return key.startsWith("--") && isString(value) && !isCssVar(value);
+};
 
-var resolveTokenValue = (theme, value) => {
+var resolveTokenValue = function resolveTokenValue(theme, value) {
   var _ref, _getVar2;
 
   if (value == null) return value;
 
-  var getVar = val => {
+  var getVar = function getVar(val) {
     var _theme$__cssMap, _theme$__cssMap$val;
 
     return (_theme$__cssMap = theme.__cssMap) == null ? void 0 : (_theme$__cssMap$val = _theme$__cssMap[val]) == null ? void 0 : _theme$__cssMap$val.varRef;
   };
 
-  var getValue = val => {
+  var getValue = function getValue(val) {
     var _getVar;
 
     return (_getVar = getVar(val)) != null ? _getVar : val;
   };
 
-  var valueSplit = value.split(",").map(v => v.trim());
-  var [tokenValue, fallbackValue] = valueSplit;
+  var valueSplit = value.split(",").map(function (v) {
+    return v.trim();
+  });
+  var tokenValue = valueSplit[0],
+      fallbackValue = valueSplit[1];
   value = (_ref = (_getVar2 = getVar(tokenValue)) != null ? _getVar2 : getValue(fallbackValue)) != null ? _ref : getValue(value);
   return value;
 };
 
 function getCss(options) {
-  var {
-    configs = {},
-    pseudos = {},
-    theme
-  } = options;
+  var _options$configs = options.configs,
+      configs = _options$configs === void 0 ? {} : _options$configs,
+      _options$pseudos = options.pseudos,
+      pseudos = _options$pseudos === void 0 ? {} : _options$pseudos,
+      theme = options.theme;
 
   var css = function css(stylesOrFn, nested) {
     if (nested === void 0) {
@@ -3588,13 +3748,14 @@ function getCss(options) {
 
       var configProperty = runIfFn((_config3 = config) == null ? void 0 : _config3.property, theme);
 
-      if (!nested && (_config4 = config) != null && _config4.static) {
-        var staticStyles = runIfFn(config.static, theme);
+      if (!nested && (_config4 = config) != null && _config4["static"]) {
+        var staticStyles = runIfFn(config["static"], theme);
         computedStyles = lodash_mergewith({}, computedStyles, staticStyles);
       }
 
       if (configProperty && Array.isArray(configProperty)) {
-        for (var property of configProperty) {
+        for (var _iterator = _createForOfIteratorHelperLoose(configProperty), _step; !(_step = _iterator()).done;) {
+          var property = _step.value;
           computedStyles[property] = rawValue;
         }
 
@@ -3624,13 +3785,15 @@ function getCss(options) {
 
   return css;
 }
-var css = styles => theme => {
-  var cssFn = getCss({
-    theme,
-    pseudos: pseudoSelectors,
-    configs: systemProps
-  });
-  return cssFn(styles);
+var css = function css(styles) {
+  return function (theme) {
+    var cssFn = getCss({
+      theme: theme,
+      pseudos: pseudoSelectors,
+      configs: systemProps
+    });
+    return cssFn(styles);
+  };
 };
 
 /**
@@ -3658,7 +3821,7 @@ var _add = function add() {
     operands[_key2] = arguments[_key2];
   }
 
-  return "calc(" + toExpression("+", ...operands) + ")";
+  return "calc(" + toExpression.apply(void 0, ["+"].concat(operands)) + ")";
 };
 
 var _subtract = function subtract() {
@@ -3666,7 +3829,7 @@ var _subtract = function subtract() {
     operands[_key3] = arguments[_key3];
   }
 
-  return "calc(" + toExpression("-", ...operands) + ")";
+  return "calc(" + toExpression.apply(void 0, ["-"].concat(operands)) + ")";
 };
 
 var _multiply = function multiply() {
@@ -3674,7 +3837,7 @@ var _multiply = function multiply() {
     operands[_key4] = arguments[_key4];
   }
 
-  return "calc(" + toExpression("*", ...operands) + ")";
+  return "calc(" + toExpression.apply(void 0, ["*"].concat(operands)) + ")";
 };
 
 var _divide = function divide() {
@@ -3682,10 +3845,10 @@ var _divide = function divide() {
     operands[_key5] = arguments[_key5];
   }
 
-  return "calc(" + toExpression("/", ...operands) + ")";
+  return "calc(" + toExpression.apply(void 0, ["/"].concat(operands)) + ")";
 };
 
-var _negate = x => {
+var _negate = function negate(x) {
   var value = resolveReference(x);
 
   if (value != null && !Number.isNaN(parseFloat(value))) {
@@ -3695,38 +3858,44 @@ var _negate = x => {
   return _multiply(value, -1);
 };
 
-var calc = Object.assign(x => ({
-  add: function add() {
-    for (var _len6 = arguments.length, operands = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-      operands[_key6] = arguments[_key6];
-    }
+var calc = Object.assign(function (x) {
+  return {
+    add: function add() {
+      for (var _len6 = arguments.length, operands = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+        operands[_key6] = arguments[_key6];
+      }
 
-    return calc(_add(x, ...operands));
-  },
-  subtract: function subtract() {
-    for (var _len7 = arguments.length, operands = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-      operands[_key7] = arguments[_key7];
-    }
+      return calc(_add.apply(void 0, [x].concat(operands)));
+    },
+    subtract: function subtract() {
+      for (var _len7 = arguments.length, operands = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+        operands[_key7] = arguments[_key7];
+      }
 
-    return calc(_subtract(x, ...operands));
-  },
-  multiply: function multiply() {
-    for (var _len8 = arguments.length, operands = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-      operands[_key8] = arguments[_key8];
-    }
+      return calc(_subtract.apply(void 0, [x].concat(operands)));
+    },
+    multiply: function multiply() {
+      for (var _len8 = arguments.length, operands = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+        operands[_key8] = arguments[_key8];
+      }
 
-    return calc(_multiply(x, ...operands));
-  },
-  divide: function divide() {
-    for (var _len9 = arguments.length, operands = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-      operands[_key9] = arguments[_key9];
-    }
+      return calc(_multiply.apply(void 0, [x].concat(operands)));
+    },
+    divide: function divide() {
+      for (var _len9 = arguments.length, operands = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+        operands[_key9] = arguments[_key9];
+      }
 
-    return calc(_divide(x, ...operands));
-  },
-  negate: () => calc(_negate(x)),
-  toString: () => x.toString()
-}), {
+      return calc(_divide.apply(void 0, [x].concat(operands)));
+    },
+    negate: function negate() {
+      return calc(_negate(x));
+    },
+    toString: function toString() {
+      return x.toString();
+    }
+  };
+}, {
   add: _add,
   subtract: _subtract,
   multiply: _multiply,
@@ -4540,8 +4709,8 @@ var createCache = function createCache(options) {
   return cache;
 };
 
-function _extends$2() {
-  _extends$2 = Object.assign || function (target) {
+function _extends$1() {
+  _extends$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -4555,10 +4724,10 @@ function _extends$2() {
     return target;
   };
 
-  return _extends$2.apply(this, arguments);
+  return _extends$1.apply(this, arguments);
 }
 
-var isBrowser$1 = "object" !== 'undefined';
+var isBrowser = "object" !== 'undefined';
 function getRegisteredStyles(registered, registeredStyles, classNames) {
   var rawClassName = '';
   classNames.split(' ').forEach(function (className) {
@@ -4582,7 +4751,7 @@ var insertStyles = function insertStyles(cache, serialized, isStringTag) {
   // in node since emotion-server relies on whether a style is in
   // the registered cache to know whether a style is global or not
   // also, note that this check will be dead code eliminated in the browser
-  isBrowser$1 === false ) && cache.registered[className] === undefined) {
+  isBrowser === false ) && cache.registered[className] === undefined) {
     cache.registered[className] = serialized.styles;
   }
 
@@ -4948,7 +5117,7 @@ var getTheme = function getTheme(outerTheme, theme) {
     return mergedTheme;
   }
 
-  return _extends$2({}, outerTheme, theme);
+  return _extends$1({}, outerTheme, theme);
 };
 
 var createCacheWithTheme = /* #__PURE__ */weakMemoize(function (outerTheme) {
@@ -4992,13 +5161,266 @@ module.exports = _extends;
 module.exports["default"] = module.exports, module.exports.__esModule = true;
 });
 
+function isFunction$1(value) {
+  return typeof value === "function";
+} // Generic assertions
+
+function omit(object, keys) {
+  var result = {};
+  Object.keys(object).forEach(function (key) {
+    if (keys.includes(key)) return;
+    result[key] = object[key];
+  });
+  return result;
+}
 /**
- * Carefully selected html elements for chakra components.
- * This is mostly for `chakra.<element>` syntax.
+ * Get value from a deeply nested object using a string path.
+ * Memoizes the value.
+ * @param obj - the object
+ * @param path - the string path
+ * @param def  - the fallback value
  */
-var domElements = ["a", "b", "article", "aside", "blockquote", "button", "caption", "cite", "circle", "code", "dd", "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "img", "input", "kbd", "label", "li", "main", "mark", "nav", "ol", "p", "path", "pre", "q", "rect", "s", "svg", "section", "select", "strong", "small", "span", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "tr", "ul"];
-function omitThemingProps(props) {
-  return omit(props, ["styleConfig", "size", "variant", "colorScheme"]);
+
+function get$1(obj, path, fallback, index) {
+  var key = typeof path === "string" ? path.split(".") : [path];
+
+  for (index = 0; index < key.length; index += 1) {
+    if (!obj) break;
+    obj = obj[key[index]];
+  }
+
+  return obj === undefined ? fallback : obj;
+}
+var memoize$2 = function memoize(fn) {
+  var cache = new WeakMap();
+
+  var memoizedFn = function memoizedFn(obj, path, fallback, index) {
+    if (typeof obj === "undefined") {
+      return fn(obj, path, fallback);
+    }
+
+    if (!cache.has(obj)) {
+      cache.set(obj, new Map());
+    }
+
+    var map = cache.get(obj);
+
+    if (map.has(path)) {
+      return map.get(path);
+    }
+
+    var value = fn(obj, path, fallback, index);
+    map.set(path, value);
+    return value;
+  };
+
+  return memoizedFn;
+};
+var memoizedGet$1 = memoize$2(get$1);
+
+/**
+ * Returns the items of an object that meet the condition specified in a callback function.
+ *
+ * @param object the object to loop through
+ * @param fn The filter function
+ */
+function objectFilter(object, fn) {
+  var result = {};
+  Object.keys(object).forEach(function (key) {
+    var value = object[key];
+    var shouldPass = fn(value, key, object);
+
+    if (shouldPass) {
+      result[key] = value;
+    }
+  });
+  return result;
+}
+var filterUndefined = function filterUndefined(object) {
+  return objectFilter(object, function (val) {
+    return val !== null && val !== undefined;
+  });
+};
+
+/* eslint-disable no-nested-ternary */
+function runIfFn$1(valueOrFn) {
+  for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    args[_key - 1] = arguments[_key];
+  }
+
+  return isFunction$1(valueOrFn) ? valueOrFn.apply(void 0, args) : valueOrFn;
+}
+
+var breakpoints$1 = Object.freeze(["base", "sm", "md", "lg", "xl", "2xl"]);
+
+/* global Map:readonly, Set:readonly, ArrayBuffer:readonly */
+
+var hasElementType = typeof Element !== 'undefined';
+var hasMap = typeof Map === 'function';
+var hasSet = typeof Set === 'function';
+var hasArrayBuffer = typeof ArrayBuffer === 'function' && !!ArrayBuffer.isView;
+
+// Note: We **don't** need `envHasBigInt64Array` in fde es6/index.js
+
+function equal(a, b) {
+  // START: fast-deep-equal es6/index.js 3.1.1
+  if (a === b) return true;
+
+  if (a && b && typeof a == 'object' && typeof b == 'object') {
+    if (a.constructor !== b.constructor) return false;
+
+    var length, i, keys;
+    if (Array.isArray(a)) {
+      length = a.length;
+      if (length != b.length) return false;
+      for (i = length; i-- !== 0;)
+        if (!equal(a[i], b[i])) return false;
+      return true;
+    }
+
+    // START: Modifications:
+    // 1. Extra `has<Type> &&` helpers in initial condition allow es6 code
+    //    to co-exist with es5.
+    // 2. Replace `for of` with es5 compliant iteration using `for`.
+    //    Basically, take:
+    //
+    //    ```js
+    //    for (i of a.entries())
+    //      if (!b.has(i[0])) return false;
+    //    ```
+    //
+    //    ... and convert to:
+    //
+    //    ```js
+    //    it = a.entries();
+    //    while (!(i = it.next()).done)
+    //      if (!b.has(i.value[0])) return false;
+    //    ```
+    //
+    //    **Note**: `i` access switches to `i.value`.
+    var it;
+    if (hasMap && (a instanceof Map) && (b instanceof Map)) {
+      if (a.size !== b.size) return false;
+      it = a.entries();
+      while (!(i = it.next()).done)
+        if (!b.has(i.value[0])) return false;
+      it = a.entries();
+      while (!(i = it.next()).done)
+        if (!equal(i.value[1], b.get(i.value[0]))) return false;
+      return true;
+    }
+
+    if (hasSet && (a instanceof Set) && (b instanceof Set)) {
+      if (a.size !== b.size) return false;
+      it = a.entries();
+      while (!(i = it.next()).done)
+        if (!b.has(i.value[0])) return false;
+      return true;
+    }
+    // END: Modifications
+
+    if (hasArrayBuffer && ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
+      length = a.length;
+      if (length != b.length) return false;
+      for (i = length; i-- !== 0;)
+        if (a[i] !== b[i]) return false;
+      return true;
+    }
+
+    if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
+    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
+    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
+
+    keys = Object.keys(a);
+    length = keys.length;
+    if (length !== Object.keys(b).length) return false;
+
+    for (i = length; i-- !== 0;)
+      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
+    // END: fast-deep-equal
+
+    // START: react-fast-compare
+    // custom handling for DOM elements
+    if (hasElementType && a instanceof Element) return false;
+
+    // custom handling for React/Preact
+    for (i = length; i-- !== 0;) {
+      if ((keys[i] === '_owner' || keys[i] === '__v' || keys[i] === '__o') && a.$$typeof) {
+        // React-specific: avoid traversing React elements' _owner
+        // Preact-specific: avoid traversing Preact elements' __v and __o
+        //    __v = $_original / $_vnode
+        //    __o = $_owner
+        // These properties contain circular references and are not needed when
+        // comparing the actual elements (and not their owners)
+        // .$$typeof and ._store on just reasonable markers of elements
+
+        continue;
+      }
+
+      // all other properties should be traversed as usual
+      if (!equal(a[keys[i]], b[keys[i]])) return false;
+    }
+    // END: react-fast-compare
+
+    // START: fast-deep-equal
+    return true;
+  }
+
+  return a !== a && b !== b;
+}
+// end fast-deep-equal
+
+var reactFastCompare = function isEqual(a, b) {
+  try {
+    return equal(a, b);
+  } catch (error) {
+    if (((error.message || '').match(/stack|recursion/i))) {
+      // warn on circular references, don't crash
+      // browsers give this different errors name and messages:
+      // chrome/safari: "RangeError", "Maximum call stack size exceeded"
+      // firefox: "InternalError", too much recursion"
+      // edge: "Error", "Out of stack space"
+      console.warn('react-fast-compare cannot handle circular refs');
+      return false;
+    }
+    // some other error. we should definitely know about these
+    throw error;
+  }
+};
+
+/**
+ * Creates a named context, provider, and hook.
+ *
+ * @param options create context options
+ */
+function createContext(options) {
+  if (options === void 0) {
+    options = {};
+  }
+
+  var _options = options,
+      _options$strict = _options.strict,
+      strict = _options$strict === void 0 ? true : _options$strict,
+      _options$errorMessage = _options.errorMessage,
+      errorMessage = _options$errorMessage === void 0 ? "useContext: `context` is undefined. Seems you forgot to wrap component within the Provider" : _options$errorMessage,
+      name = _options.name;
+  var Context = /*#__PURE__*/react.createContext(undefined);
+  Context.displayName = name;
+
+  function useContext() {
+    var context = react.useContext(Context);
+
+    if (!context && strict) {
+      var error = new Error(errorMessage);
+      error.name = "ContextError";
+      Error.captureStackTrace == null ? void 0 : Error.captureStackTrace(error, useContext);
+      throw error;
+    }
+
+    return context;
+  }
+
+  return [Context.Provider, useContext, Context];
 }
 
 var reactPropsRegex = /^((children|dangerouslySetInnerHTML|key|ref|autoFocus|defaultValue|defaultChecked|innerHTML|suppressContentEditableWarning|suppressHydrationWarning|valueLink|accept|acceptCharset|accessKey|action|allow|allowUserMedia|allowPaymentRequest|allowFullScreen|allowTransparency|alt|async|autoComplete|autoPlay|capture|cellPadding|cellSpacing|challenge|charSet|checked|cite|classID|className|cols|colSpan|content|contentEditable|contextMenu|controls|controlsList|coords|crossOrigin|data|dateTime|decoding|default|defer|dir|disabled|disablePictureInPicture|download|draggable|encType|form|formAction|formEncType|formMethod|formNoValidate|formTarget|frameBorder|headers|height|hidden|high|href|hrefLang|htmlFor|httpEquiv|id|inputMode|integrity|is|keyParams|keyType|kind|label|lang|list|loading|loop|low|marginHeight|marginWidth|max|maxLength|media|mediaGroup|method|min|minLength|multiple|muted|name|nonce|noValidate|open|optimum|pattern|placeholder|playsInline|poster|preload|profile|radioGroup|readOnly|referrerPolicy|rel|required|reversed|role|rows|rowSpan|sandbox|scope|scoped|scrolling|seamless|selected|shape|size|sizes|slot|span|spellCheck|src|srcDoc|srcLang|srcSet|start|step|style|summary|tabIndex|target|title|translate|type|useMap|value|width|wmode|wrap|about|datatype|inlist|prefix|property|resource|typeof|vocab|autoCapitalize|autoCorrect|autoSave|color|fallback|inert|itemProp|itemScope|itemType|itemID|itemRef|on|option|results|security|unselectable|accentHeight|accumulate|additive|alignmentBaseline|allowReorder|alphabetic|amplitude|arabicForm|ascent|attributeName|attributeType|autoReverse|azimuth|baseFrequency|baselineShift|baseProfile|bbox|begin|bias|by|calcMode|capHeight|clip|clipPathUnits|clipPath|clipRule|colorInterpolation|colorInterpolationFilters|colorProfile|colorRendering|contentScriptType|contentStyleType|cursor|cx|cy|d|decelerate|descent|diffuseConstant|direction|display|divisor|dominantBaseline|dur|dx|dy|edgeMode|elevation|enableBackground|end|exponent|externalResourcesRequired|fill|fillOpacity|fillRule|filter|filterRes|filterUnits|floodColor|floodOpacity|focusable|fontFamily|fontSize|fontSizeAdjust|fontStretch|fontStyle|fontVariant|fontWeight|format|from|fr|fx|fy|g1|g2|glyphName|glyphOrientationHorizontal|glyphOrientationVertical|glyphRef|gradientTransform|gradientUnits|hanging|horizAdvX|horizOriginX|ideographic|imageRendering|in|in2|intercept|k|k1|k2|k3|k4|kernelMatrix|kernelUnitLength|kerning|keyPoints|keySplines|keyTimes|lengthAdjust|letterSpacing|lightingColor|limitingConeAngle|local|markerEnd|markerMid|markerStart|markerHeight|markerUnits|markerWidth|mask|maskContentUnits|maskUnits|mathematical|mode|numOctaves|offset|opacity|operator|order|orient|orientation|origin|overflow|overlinePosition|overlineThickness|panose1|paintOrder|pathLength|patternContentUnits|patternTransform|patternUnits|pointerEvents|points|pointsAtX|pointsAtY|pointsAtZ|preserveAlpha|preserveAspectRatio|primitiveUnits|r|radius|refX|refY|renderingIntent|repeatCount|repeatDur|requiredExtensions|requiredFeatures|restart|result|rotate|rx|ry|scale|seed|shapeRendering|slope|spacing|specularConstant|specularExponent|speed|spreadMethod|startOffset|stdDeviation|stemh|stemv|stitchTiles|stopColor|stopOpacity|strikethroughPosition|strikethroughThickness|string|stroke|strokeDasharray|strokeDashoffset|strokeLinecap|strokeLinejoin|strokeMiterlimit|strokeOpacity|strokeWidth|surfaceScale|systemLanguage|tableValues|targetX|targetY|textAnchor|textDecoration|textRendering|textLength|to|transform|u1|u2|underlinePosition|underlineThickness|unicode|unicodeBidi|unicodeRange|unitsPerEm|vAlphabetic|vHanging|vIdeographic|vMathematical|values|vectorEffect|version|vertAdvY|vertOriginX|vertOriginY|viewBox|viewTarget|visibility|widths|wordSpacing|writingMode|x|xHeight|x1|x2|xChannelSelector|xlinkActuate|xlinkArcrole|xlinkHref|xlinkRole|xlinkShow|xlinkTitle|xlinkType|xmlBase|xmlns|xmlnsXlink|xmlLang|xmlSpace|y|y1|y2|yChannelSelector|z|zoomAndPan|for|class|autofocus)|(([Dd][Aa][Tt][Aa]|[Aa][Rr][Ii][Aa]|x)-.*))$/; // https://esbench.com/bench/5bfee68a4cd7e6009ef61d23
@@ -5146,7 +5568,7 @@ var createStyled = function createStyled(tag, options) {
     });
 
     Styled.withComponent = function (nextTag, nextOptions) {
-      return createStyled(nextTag, _extends$2({}, options, nextOptions, {
+      return createStyled(nextTag, _extends$1({}, options, nextOptions, {
         shouldForwardProp: composeShouldForwardProps(Styled, nextOptions, true)
       })).apply(void 0, styles);
     };
@@ -5164,12 +5586,78 @@ tags.forEach(function (tagName) {
   newStyled[tagName] = newStyled(tagName);
 });
 
+function _extends$2() {
+  _extends$2 = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+
+    return target;
+  };
+
+  return _extends$2.apply(this, arguments);
+}
+function useTheme() {
+  var theme = react.useContext(ThemeContext);
+
+  if (!theme) {
+    throw Error("useTheme: `theme` is undefined. Seems you forgot to wrap your app in `<ChakraProvider />` or `<ThemeProvider />`");
+  }
+
+  return theme;
+}
+
+var _createContext = createContext({
+  name: "StylesContext",
+  errorMessage: "useStyles: `styles` is undefined. Seems you forgot to wrap the components in `<StylesProvider />` "
+}),
+    StylesProvider = _createContext[0],
+    useStyles = _createContext[1];
+
+/**
+ * Carefully selected html elements for chakra components.
+ * This is mostly for `chakra.<element>` syntax.
+ */
+var domElements = ["a", "b", "article", "aside", "blockquote", "button", "caption", "cite", "circle", "code", "dd", "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "img", "input", "kbd", "label", "li", "main", "mark", "nav", "ol", "p", "path", "pre", "q", "rect", "s", "svg", "section", "select", "strong", "small", "span", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "tr", "ul"];
+function omitThemingProps(props) {
+  return omit(props, ["styleConfig", "size", "variant", "colorScheme"]);
+}
+
+function useChakra() {
+  var colorModeResult = useColorMode();
+  var theme = useTheme();
+  return _extends$2({}, colorModeResult, {
+    theme: theme
+  });
+}
+
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
+  }
+
+  return target;
+}
+
 /**
  * List of props for emotion to omit from DOM.
  * It mostly consists of Chakra props
  */
 
-var allPropNames = new Set([...propNames, "textStyle", "layerStyle", "apply", "isTruncated", "noOfLines", "focusBorderColor", "errorBorderColor", "as", "__css", "css", "sx"]);
+var allPropNames = new Set([].concat(propNames, ["textStyle", "layerStyle", "apply", "isTruncated", "noOfLines", "focusBorderColor", "errorBorderColor", "as", "__css", "css", "sx"]));
 /**
  * htmlWidth and htmlHeight is used in the <Image />
  * component to support the native `width` and `height` attributes
@@ -5178,9 +5666,12 @@ var allPropNames = new Set([...propNames, "textStyle", "layerStyle", "apply", "i
  */
 
 var validHTMLProps = new Set(["htmlWidth", "htmlHeight", "htmlSize"]);
-var shouldForwardProp = prop => validHTMLProps.has(prop) || !allPropNames.has(prop);
+var shouldForwardProp = function shouldForwardProp(prop) {
+  return validHTMLProps.has(prop) || !allPropNames.has(prop);
+};
 
-function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+var _excluded$1 = ["theme", "css", "__css", "sx"],
+    _excluded2 = ["baseStyle"];
 
 /**
  * Style resolver function that manages how style props are merged
@@ -5195,20 +5686,19 @@ function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) r
  * behaviors. Right now, the `sx` prop has the highest priority so the resolved
  * fontSize will be `40px`
  */
-var toCSSObject = (_ref) => {
-  var {
-    baseStyle
-  } = _ref;
-  return props => {
-    var {
-      css: cssProp,
-      __css,
-      sx
-    } = props,
-        rest = _objectWithoutPropertiesLoose(props, ["theme", "css", "__css", "sx"]);
+var toCSSObject = function toCSSObject(_ref) {
+  var baseStyle = _ref.baseStyle;
+  return function (props) {
+    props.theme;
+        var cssProp = props.css,
+        __css = props.__css,
+        sx = props.sx,
+        rest = _objectWithoutPropertiesLoose(props, _excluded$1);
 
-    var styleProps = objectFilter(rest, (_, prop) => isStyleProp(prop));
-    var finalBaseStyle = runIfFn(baseStyle, props);
+    var styleProps = objectFilter(rest, function (_, prop) {
+      return isStyleProp(prop);
+    });
+    var finalBaseStyle = runIfFn$1(baseStyle, props);
     var finalStyles = Object.assign({}, __css, finalBaseStyle, filterUndefined(styleProps), sx);
     var computedCSS = css(finalStyles)(props.theme);
     return cssProp ? [computedCSS, cssProp] : computedCSS;
@@ -5216,22 +5706,20 @@ var toCSSObject = (_ref) => {
 };
 function styled(component, options) {
   var _ref2 = options != null ? options : {},
-      {
-    baseStyle
-  } = _ref2,
-      styledOptions = _objectWithoutPropertiesLoose(_ref2, ["baseStyle"]);
+      baseStyle = _ref2.baseStyle,
+      styledOptions = _objectWithoutPropertiesLoose(_ref2, _excluded2);
 
   if (!styledOptions.shouldForwardProp) {
     styledOptions.shouldForwardProp = shouldForwardProp;
   }
 
   var styleObject = toCSSObject({
-    baseStyle
+    baseStyle: baseStyle
   });
   return newStyled(component, styledOptions)(styleObject);
 }
 var chakra = styled;
-domElements.forEach(tag => {
+domElements.forEach(function (tag) {
   chakra[tag] = chakra(tag);
 });
 
@@ -5242,6 +5730,101 @@ domElements.forEach(tag => {
 function forwardRef(component) {
   return /*#__PURE__*/react.forwardRef(component);
 }
+
+var _excluded = ["styleConfig"];
+function useStyleConfig(themeKey, props, opts) {
+  var _styleConfig$defaultP;
+
+  if (props === void 0) {
+    props = {};
+  }
+
+  if (opts === void 0) {
+    opts = {};
+  }
+
+  var _props = props,
+      styleConfigProp = _props.styleConfig,
+      rest = _objectWithoutPropertiesLoose(_props, _excluded);
+
+  var _useChakra = useChakra(),
+      theme = _useChakra.theme,
+      colorMode = _useChakra.colorMode;
+
+  var themeStyleConfig = memoizedGet$1(theme, "components." + themeKey);
+  var styleConfig = styleConfigProp || themeStyleConfig;
+  var mergedProps = lodash_mergewith({
+    theme: theme,
+    colorMode: colorMode
+  }, (_styleConfig$defaultP = styleConfig == null ? void 0 : styleConfig.defaultProps) != null ? _styleConfig$defaultP : {}, filterUndefined(omit(rest, ["children"])));
+  /**
+   * Store the computed styles in a `ref` to avoid unneeded re-computation
+   */
+
+  var stylesRef = react.useRef({});
+
+  if (styleConfig) {
+    var _styleConfig$baseStyl, _styleConfig$variants, _styleConfig$variants2, _styleConfig$sizes$me, _styleConfig$sizes, _opts;
+
+    var baseStyles = runIfFn$1((_styleConfig$baseStyl = styleConfig.baseStyle) != null ? _styleConfig$baseStyl : {}, mergedProps);
+    var variants = runIfFn$1((_styleConfig$variants = (_styleConfig$variants2 = styleConfig.variants) == null ? void 0 : _styleConfig$variants2[mergedProps.variant]) != null ? _styleConfig$variants : {}, mergedProps);
+    var sizes = runIfFn$1((_styleConfig$sizes$me = (_styleConfig$sizes = styleConfig.sizes) == null ? void 0 : _styleConfig$sizes[mergedProps.size]) != null ? _styleConfig$sizes$me : {}, mergedProps);
+    var styles = lodash_mergewith({}, baseStyles, sizes, variants);
+
+    if ((_opts = opts) != null && _opts.isMultiPart && styleConfig.parts) {
+      styleConfig.parts.forEach(function (part) {
+        var _styles$part;
+
+        styles[part] = (_styles$part = styles[part]) != null ? _styles$part : {};
+      });
+    }
+
+    var isStyleEqual = reactFastCompare(stylesRef.current, styles);
+
+    if (!isStyleEqual) {
+      stylesRef.current = styles;
+    }
+  }
+
+  return stylesRef.current;
+}
+function useMultiStyleConfig(themeKey, props) {
+  return useStyleConfig(themeKey, props, {
+    isMultiPart: true
+  });
+}
+
+function isElement(el) {
+  return el != null && typeof el == "object" && "nodeType" in el && el.nodeType === Node.ELEMENT_NODE;
+}
+function isHTMLElement(el) {
+  var _el$ownerDocument$def;
+
+  if (!isElement(el)) {
+    return false;
+  }
+
+  var win = (_el$ownerDocument$def = el.ownerDocument.defaultView) != null ? _el$ownerDocument$def : window;
+  return el instanceof win.HTMLElement;
+}
+function getOwnerDocument(node) {
+  var _node$ownerDocument;
+
+  return isElement(node) ? (_node$ownerDocument = node.ownerDocument) != null ? _node$ownerDocument : document : document;
+}
+function canUseDOM() {
+  return !!(typeof window !== "undefined" && window.document && window.document.createElement);
+}
+var isBrowser$1 = canUseDOM();
+var dataAttr = condition => condition ? "" : undefined;
+var ariaAttr = condition => condition ? true : undefined;
+var cx = function cx() {
+  for (var _len = arguments.length, classNames = new Array(_len), _key = 0; _key < _len; _key++) {
+    classNames[_key] = arguments[_key];
+  }
+
+  return classNames.filter(Boolean).join(" ");
+};
 
 function _extends$3() { _extends$3 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$3.apply(this, arguments); }
 
@@ -5318,4 +5901,4 @@ var Icon = /*#__PURE__*/forwardRef((props, ref) => {
   }, shared, rest), _path);
 });
 
-export { pipe as A, chakra as B, omitThemingProps as C, cx as D, dataAttr as E, callAll as F, ariaAttr as G, tokenToCSSVar as H, Icon as I, StyleSheet as S, ThemeContext as T, _extends$2 as _, fromEntries as a, isNumber as b, isHTMLElement as c, isArray as d, isBrowser as e, forwardRef as f, getOwnerDocument as g, calc as h, isObject as i, withEmotionCache as j, insertStyles as k, isFunction as l, ThemeProvider as m, noop as n, objectKeys as o, pick as p, memoizedGet as q, runIfFn as r, serializeStyles as s, css as t, lodash_mergewith as u, filterUndefined as v, warn as w, omit as x, callAllHandlers as y, isEmptyObject as z };
+export { Icon as I, StyleSheet as S, ThemeContext as T, _extends$1 as _, isHTMLElement as a, isBrowser$1 as b, ThemeProvider as c, chakra as d, cx as e, forwardRef as f, getOwnerDocument as g, dataAttr as h, insertStyles as i, useMultiStyleConfig as j, ariaAttr as k, lodash_mergewith as l, StylesProvider as m, useStyles as n, omitThemingProps as o, serializeStyles as s, tokenToCSSVar as t, useStyleConfig as u, withEmotionCache as w };

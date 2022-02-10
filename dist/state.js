@@ -11,6 +11,7 @@ export var ApplicationCommandOptionType;
   ApplicationCommandOptionType2[ApplicationCommandOptionType2["Role"] = 8] = "Role";
   ApplicationCommandOptionType2[ApplicationCommandOptionType2["Mentionable"] = 9] = "Mentionable";
   ApplicationCommandOptionType2[ApplicationCommandOptionType2["Number"] = 10] = "Number";
+  ApplicationCommandOptionType2[ApplicationCommandOptionType2["Attachment"] = 11] = "Attachment";
 })(ApplicationCommandOptionType || (ApplicationCommandOptionType = {}));
 export const useCommandStore = create((set, get) => ({
   update: (key, val) => {

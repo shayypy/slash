@@ -1,11 +1,410 @@
-import { r as react, c as createCommonjsModule } from '../common/index-210ebed7.js';
-import { a as fromEntries, i as isObject, b as isNumber, c as isHTMLElement, g as getOwnerDocument, w as warn, d as isArray, o as objectKeys, n as noop$2, e as isBrowser$1, h as calc, p as pick, j as withEmotionCache, s as serializeStyles, T as ThemeContext, S as StyleSheet, k as insertStyles, l as isFunction, m as ThemeProvider$1, q as memoizedGet, r as runIfFn, t as css$1, u as lodash_mergewith, v as filterUndefined, x as omit, y as callAllHandlers, z as isEmptyObject, A as pipe$1, B as chakra, f as forwardRef, C as omitThemingProps, D as cx, E as dataAttr, F as callAll, I as Icon, G as ariaAttr, H as tokenToCSSVar, _ as _extends$G } from '../common/icon-706dbfa3.js';
+import { w as withEmotionCache, s as serializeStyles, T as ThemeContext, S as StyleSheet, i as insertStyles, a as isHTMLElement, g as getOwnerDocument, b as isBrowser$1, l as lodash_mergewith, c as ThemeProvider$1, d as chakra, f as forwardRef, u as useStyleConfig, o as omitThemingProps, e as cx, h as dataAttr, j as useMultiStyleConfig, I as Icon, k as ariaAttr, t as tokenToCSSVar$1, _ as _extends$H, m as StylesProvider$1, n as useStyles$1 } from '../common/icon-4726ca6c.js';
+import { c as createCommonjsModule, r as react } from '../common/index-210ebed7.js';
 import { r as reactDom } from '../common/index-86457145.js';
+
+var defaultTimestep = (1 / 60) * 1000;
+var getCurrentTime = typeof performance !== "undefined"
+    ? function () { return performance.now(); }
+    : function () { return Date.now(); };
+var onNextFrame = typeof window !== "undefined"
+    ? function (callback) {
+        return window.requestAnimationFrame(callback);
+    }
+    : function (callback) {
+        return setTimeout(function () { return callback(getCurrentTime()); }, defaultTimestep);
+    };
+
+function createRenderStep(runNextFrame) {
+    var toRun = [];
+    var toRunNextFrame = [];
+    var numToRun = 0;
+    var isProcessing = false;
+    var toKeepAlive = new WeakSet();
+    var step = {
+        schedule: function (callback, keepAlive, immediate) {
+            if (keepAlive === void 0) { keepAlive = false; }
+            if (immediate === void 0) { immediate = false; }
+            var addToCurrentFrame = immediate && isProcessing;
+            var buffer = addToCurrentFrame ? toRun : toRunNextFrame;
+            if (keepAlive)
+                toKeepAlive.add(callback);
+            if (buffer.indexOf(callback) === -1) {
+                buffer.push(callback);
+                if (addToCurrentFrame && isProcessing)
+                    numToRun = toRun.length;
+            }
+            return callback;
+        },
+        cancel: function (callback) {
+            var index = toRunNextFrame.indexOf(callback);
+            if (index !== -1)
+                toRunNextFrame.splice(index, 1);
+            toKeepAlive.delete(callback);
+        },
+        process: function (frameData) {
+            var _a;
+            isProcessing = true;
+            _a = [toRunNextFrame, toRun], toRun = _a[0], toRunNextFrame = _a[1];
+            toRunNextFrame.length = 0;
+            numToRun = toRun.length;
+            if (numToRun) {
+                for (var i = 0; i < numToRun; i++) {
+                    var callback = toRun[i];
+                    callback(frameData);
+                    if (toKeepAlive.has(callback)) {
+                        step.schedule(callback);
+                        runNextFrame();
+                    }
+                }
+            }
+            isProcessing = false;
+        },
+    };
+    return step;
+}
+
+var maxElapsed = 40;
+var useDefaultElapsed = true;
+var runNextFrame = false;
+var isProcessing = false;
+var frame = {
+    delta: 0,
+    timestamp: 0
+};
+var stepsOrder = ["read", "update", "preRender", "render", "postRender"];
+var steps = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
+    acc[key] = createRenderStep(function () {
+        return runNextFrame = true;
+    });
+    return acc;
+}, {});
+var sync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
+    var step = steps[key];
+    acc[key] = function (process, keepAlive, immediate) {
+        if (keepAlive === void 0) {
+            keepAlive = false;
+        }
+        if (immediate === void 0) {
+            immediate = false;
+        }
+        if (!runNextFrame) startLoop();
+        return step.schedule(process, keepAlive, immediate);
+    };
+    return acc;
+}, {});
+var cancelSync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
+    acc[key] = steps[key].cancel;
+    return acc;
+}, {});
+var flushSync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
+    acc[key] = function () {
+        return steps[key].process(frame);
+    };
+    return acc;
+}, {});
+var processStep = function (stepId) {
+    return steps[stepId].process(frame);
+};
+var processFrame = function (timestamp) {
+    runNextFrame = false;
+    frame.delta = useDefaultElapsed ? defaultTimestep : Math.max(Math.min(timestamp - frame.timestamp, maxElapsed), 1);
+    frame.timestamp = timestamp;
+    isProcessing = true;
+    stepsOrder.forEach(processStep);
+    isProcessing = false;
+    if (runNextFrame) {
+        useDefaultElapsed = false;
+        onNextFrame(processFrame);
+    }
+};
+var startLoop = function () {
+    runNextFrame = true;
+    useDefaultElapsed = true;
+    if (!isProcessing) onNextFrame(processFrame);
+};
+var getFrameData = function () {
+    return frame;
+};
+
+/** @license React v16.13.1
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+var b="function"===typeof Symbol&&Symbol.for,c=b?Symbol.for("react.element"):60103,d=b?Symbol.for("react.portal"):60106,e=b?Symbol.for("react.fragment"):60107,f=b?Symbol.for("react.strict_mode"):60108,g=b?Symbol.for("react.profiler"):60114,h=b?Symbol.for("react.provider"):60109,k=b?Symbol.for("react.context"):60110,l=b?Symbol.for("react.async_mode"):60111,m=b?Symbol.for("react.concurrent_mode"):60111,n=b?Symbol.for("react.forward_ref"):60112,p=b?Symbol.for("react.suspense"):60113,q=b?
+Symbol.for("react.suspense_list"):60120,r=b?Symbol.for("react.memo"):60115,t=b?Symbol.for("react.lazy"):60116,v=b?Symbol.for("react.block"):60121,w=b?Symbol.for("react.fundamental"):60117,x=b?Symbol.for("react.responder"):60118,y=b?Symbol.for("react.scope"):60119;
+function z(a){if("object"===typeof a&&null!==a){var u=a.$$typeof;switch(u){case c:switch(a=a.type,a){case l:case m:case e:case g:case f:case p:return a;default:switch(a=a&&a.$$typeof,a){case k:case n:case t:case r:case h:return a;default:return u}}case d:return u}}}function A(a){return z(a)===m}var AsyncMode=l;var ConcurrentMode=m;var ContextConsumer=k;var ContextProvider=h;var Element=c;var ForwardRef=n;var Fragment=e;var Lazy=t;var Memo=r;var Portal=d;
+var Profiler=g;var StrictMode=f;var Suspense=p;var isAsyncMode=function(a){return A(a)||z(a)===l};var isConcurrentMode=A;var isContextConsumer=function(a){return z(a)===k};var isContextProvider=function(a){return z(a)===h};var isElement=function(a){return "object"===typeof a&&null!==a&&a.$$typeof===c};var isForwardRef=function(a){return z(a)===n};var isFragment=function(a){return z(a)===e};var isLazy=function(a){return z(a)===t};
+var isMemo=function(a){return z(a)===r};var isPortal=function(a){return z(a)===d};var isProfiler=function(a){return z(a)===g};var isStrictMode=function(a){return z(a)===f};var isSuspense=function(a){return z(a)===p};
+var isValidElementType=function(a){return "string"===typeof a||"function"===typeof a||a===e||a===m||a===g||a===f||a===p||a===q||"object"===typeof a&&null!==a&&(a.$$typeof===t||a.$$typeof===r||a.$$typeof===h||a.$$typeof===k||a.$$typeof===n||a.$$typeof===w||a.$$typeof===x||a.$$typeof===y||a.$$typeof===v)};var typeOf=z;
+
+var reactIs_production_min = {
+	AsyncMode: AsyncMode,
+	ConcurrentMode: ConcurrentMode,
+	ContextConsumer: ContextConsumer,
+	ContextProvider: ContextProvider,
+	Element: Element,
+	ForwardRef: ForwardRef,
+	Fragment: Fragment,
+	Lazy: Lazy,
+	Memo: Memo,
+	Portal: Portal,
+	Profiler: Profiler,
+	StrictMode: StrictMode,
+	Suspense: Suspense,
+	isAsyncMode: isAsyncMode,
+	isConcurrentMode: isConcurrentMode,
+	isContextConsumer: isContextConsumer,
+	isContextProvider: isContextProvider,
+	isElement: isElement,
+	isForwardRef: isForwardRef,
+	isFragment: isFragment,
+	isLazy: isLazy,
+	isMemo: isMemo,
+	isPortal: isPortal,
+	isProfiler: isProfiler,
+	isStrictMode: isStrictMode,
+	isSuspense: isSuspense,
+	isValidElementType: isValidElementType,
+	typeOf: typeOf
+};
+
+var reactIs = createCommonjsModule(function (module) {
+
+{
+  module.exports = reactIs_production_min;
+}
+});
+
+var FORWARD_REF_STATICS = {
+  '$$typeof': true,
+  render: true,
+  defaultProps: true,
+  displayName: true,
+  propTypes: true
+};
+var MEMO_STATICS = {
+  '$$typeof': true,
+  compare: true,
+  defaultProps: true,
+  displayName: true,
+  propTypes: true,
+  type: true
+};
+var TYPE_STATICS = {};
+TYPE_STATICS[reactIs.ForwardRef] = FORWARD_REF_STATICS;
+TYPE_STATICS[reactIs.Memo] = MEMO_STATICS;
+
+// initial render from browser, insertBefore context.sheet.tags[0] or if a style hasn't been inserted there yet, appendChild
+// initial client-side render from SSR, use place of hydrating tag
+
+var Global = /* #__PURE__ */withEmotionCache(function (props, cache) {
+
+  var styles = props.styles;
+  var serialized = serializeStyles([styles], undefined, react.useContext(ThemeContext));
+  // but it is based on a constant that will never change at runtime
+  // it's effectively like having two implementations and switching them out
+  // so it's not actually breaking anything
+
+
+  var sheetRef = react.useRef();
+  react.useLayoutEffect(function () {
+    var key = cache.key + "-global";
+    var sheet = new StyleSheet({
+      key: key,
+      nonce: cache.sheet.nonce,
+      container: cache.sheet.container,
+      speedy: cache.sheet.isSpeedy
+    });
+    var rehydrating = false; // $FlowFixMe
+
+    var node = document.querySelector("style[data-emotion=\"" + key + " " + serialized.name + "\"]");
+
+    if (cache.sheet.tags.length) {
+      sheet.before = cache.sheet.tags[0];
+    }
+
+    if (node !== null) {
+      rehydrating = true; // clear the hash so this node won't be recognizable as rehydratable by other <Global/>s
+
+      node.setAttribute('data-emotion', key);
+      sheet.hydrate([node]);
+    }
+
+    sheetRef.current = [sheet, rehydrating];
+    return function () {
+      sheet.flush();
+    };
+  }, [cache]);
+  react.useLayoutEffect(function () {
+    var sheetRefCurrent = sheetRef.current;
+    var sheet = sheetRefCurrent[0],
+        rehydrating = sheetRefCurrent[1];
+
+    if (rehydrating) {
+      sheetRefCurrent[1] = false;
+      return;
+    }
+
+    if (serialized.next !== undefined) {
+      // insert keyframes
+      insertStyles(cache, serialized.next, true);
+    }
+
+    if (sheet.tags.length) {
+      // if this doesn't exist then it will be null so the style element will be appended
+      var element = sheet.tags[sheet.tags.length - 1].nextElementSibling;
+      sheet.before = element;
+      sheet.flush();
+    }
+
+    cache.insert("", serialized, sheet, false);
+  }, [cache, serialized.name]);
+  return null;
+});
+
+function css() {
+  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments[_key];
+  }
+
+  return serializeStyles(args);
+}
+
+var keyframes = function keyframes() {
+  var insertable = css.apply(void 0, arguments);
+  var name = "animation-" + insertable.name; // $FlowFixMe
+
+  return {
+    name: name,
+    styles: "@keyframes " + name + "{" + insertable.styles + "}",
+    anim: 1,
+    toString: function toString() {
+      return "_EMO_" + this.name + "_" + this.styles + "_EMO_";
+    }
+  };
+};
 
 function getLastItem(array) {
   var length = array == null ? 0 : array.length;
   return length ? array[length - 1] : undefined;
 }
+
+// Number assertions
+function isNumber(value) {
+  return typeof value === "number";
+}
+
+function isArray(value) {
+  return Array.isArray(value);
+}
+
+function isFunction(value) {
+  return typeof value === "function";
+} // Generic assertions
+
+function isObject(value) {
+  var type = typeof value;
+  return value != null && (type === "object" || type === "function") && !isArray(value);
+}
+function isEmptyObject(value) {
+  return isObject(value) && Object.keys(value).length === 0;
+}
+
+function isString(value) {
+  return Object.prototype.toString.call(value) === "[object String]";
+}
+function isCssVar(value) {
+  return /^var\(--.+\)$/.test(value);
+} // Empty assertions
+var __DEV__ = "production" !== "production";
+
+function pick(object, keys) {
+  var result = {};
+  keys.forEach(key => {
+    if (key in object) {
+      result[key] = object[key];
+    }
+  });
+  return result;
+}
+/**
+ * Get value from a deeply nested object using a string path.
+ * Memoizes the value.
+ * @param obj - the object
+ * @param path - the string path
+ * @param def  - the fallback value
+ */
+
+function get(obj, path, fallback, index) {
+  var key = typeof path === "string" ? path.split(".") : [path];
+
+  for (index = 0; index < key.length; index += 1) {
+    if (!obj) break;
+    obj = obj[key[index]];
+  }
+
+  return obj === undefined ? fallback : obj;
+}
+var memoize = fn => {
+  var cache = new WeakMap();
+
+  var memoizedFn = (obj, path, fallback, index) => {
+    if (typeof obj === "undefined") {
+      return fn(obj, path, fallback);
+    }
+
+    if (!cache.has(obj)) {
+      cache.set(obj, new Map());
+    }
+
+    var map = cache.get(obj);
+
+    if (map.has(path)) {
+      return map.get(path);
+    }
+
+    var value = fn(obj, path, fallback, index);
+    map.set(path, value);
+    return value;
+  };
+
+  return memoizedFn;
+};
+var memoizedGet = memoize(get);
+
+/**
+ * Returns the items of an object that meet the condition specified in a callback function.
+ *
+ * @param object the object to loop through
+ * @param fn The filter function
+ */
+function objectFilter(object, fn) {
+  var result = {};
+  Object.keys(object).forEach(key => {
+    var value = object[key];
+    var shouldPass = fn(value, key, object);
+
+    if (shouldPass) {
+      result[key] = value;
+    }
+  });
+  return result;
+}
+var filterUndefined = object => objectFilter(object, val => val !== null && val !== undefined);
+var objectKeys = obj => Object.keys(obj);
+/**
+ * Object.entries polyfill for Nodev10 compatibility
+ */
+
+var fromEntries = entries => entries.reduce((carry, _ref) => {
+  var [key, value] = _ref;
+  carry[key] = value;
+  return carry;
+}, {});
 
 function analyzeCSSValue(value) {
   var num = parseFloat(value.toString());
@@ -182,6 +581,71 @@ function getAllFocusable(container) {
   return focusableEls.filter(isFocusable).filter(el => window.getComputedStyle(el).display !== "none");
 }
 
+/* eslint-disable no-nested-ternary */
+function runIfFn(valueOrFn) {
+  for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    args[_key - 1] = arguments[_key];
+  }
+
+  return isFunction(valueOrFn) ? valueOrFn(...args) : valueOrFn;
+}
+function callAllHandlers() {
+  for (var _len2 = arguments.length, fns = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+    fns[_key2] = arguments[_key2];
+  }
+
+  return function func(event) {
+    fns.some(fn => {
+      fn == null ? void 0 : fn(event);
+      return event == null ? void 0 : event.defaultPrevented;
+    });
+  };
+}
+function callAll() {
+  for (var _len3 = arguments.length, fns = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+    fns[_key3] = arguments[_key3];
+  }
+
+  return function mergedFn(arg) {
+    fns.forEach(fn => {
+      fn == null ? void 0 : fn(arg);
+    });
+  };
+}
+function once(fn) {
+  var result;
+  return function func() {
+    if (fn) {
+      for (var _len5 = arguments.length, args = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+        args[_key5] = arguments[_key5];
+      }
+
+      result = fn.apply(this, args);
+      fn = null;
+    }
+
+    return result;
+  };
+}
+var noop = () => {};
+var warn = once(options => () => {
+  var {
+    condition,
+    message
+  } = options;
+
+  if (condition && __DEV__) {
+    console.warn(message);
+  }
+});
+var pipe = function pipe() {
+  for (var _len6 = arguments.length, fns = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+    fns[_key6] = arguments[_key6];
+  }
+
+  return v => fns.reduce((a, b) => b(a), v);
+};
+
 // Original licensing for the following methods can be found in the
 function focus(element, options) {
   if (options === void 0) {
@@ -295,130 +759,6 @@ function restoreScrollPosition(scrollableElements) {
   }
 }
 
-var defaultTimestep = (1 / 60) * 1000;
-var getCurrentTime = typeof performance !== "undefined"
-    ? function () { return performance.now(); }
-    : function () { return Date.now(); };
-var onNextFrame = typeof window !== "undefined"
-    ? function (callback) {
-        return window.requestAnimationFrame(callback);
-    }
-    : function (callback) {
-        return setTimeout(function () { return callback(getCurrentTime()); }, defaultTimestep);
-    };
-
-function createRenderStep(runNextFrame) {
-    var toRun = [];
-    var toRunNextFrame = [];
-    var numToRun = 0;
-    var isProcessing = false;
-    var toKeepAlive = new WeakSet();
-    var step = {
-        schedule: function (callback, keepAlive, immediate) {
-            if (keepAlive === void 0) { keepAlive = false; }
-            if (immediate === void 0) { immediate = false; }
-            var addToCurrentFrame = immediate && isProcessing;
-            var buffer = addToCurrentFrame ? toRun : toRunNextFrame;
-            if (keepAlive)
-                toKeepAlive.add(callback);
-            if (buffer.indexOf(callback) === -1) {
-                buffer.push(callback);
-                if (addToCurrentFrame && isProcessing)
-                    numToRun = toRun.length;
-            }
-            return callback;
-        },
-        cancel: function (callback) {
-            var index = toRunNextFrame.indexOf(callback);
-            if (index !== -1)
-                toRunNextFrame.splice(index, 1);
-            toKeepAlive.delete(callback);
-        },
-        process: function (frameData) {
-            var _a;
-            isProcessing = true;
-            _a = [toRunNextFrame, toRun], toRun = _a[0], toRunNextFrame = _a[1];
-            toRunNextFrame.length = 0;
-            numToRun = toRun.length;
-            if (numToRun) {
-                for (var i = 0; i < numToRun; i++) {
-                    var callback = toRun[i];
-                    callback(frameData);
-                    if (toKeepAlive.has(callback)) {
-                        step.schedule(callback);
-                        runNextFrame();
-                    }
-                }
-            }
-            isProcessing = false;
-        },
-    };
-    return step;
-}
-
-var maxElapsed = 40;
-var useDefaultElapsed = true;
-var runNextFrame = false;
-var isProcessing = false;
-var frame = {
-    delta: 0,
-    timestamp: 0
-};
-var stepsOrder = ["read", "update", "preRender", "render", "postRender"];
-var steps = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
-    acc[key] = createRenderStep(function () {
-        return runNextFrame = true;
-    });
-    return acc;
-}, {});
-var sync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
-    var step = steps[key];
-    acc[key] = function (process, keepAlive, immediate) {
-        if (keepAlive === void 0) {
-            keepAlive = false;
-        }
-        if (immediate === void 0) {
-            immediate = false;
-        }
-        if (!runNextFrame) startLoop();
-        return step.schedule(process, keepAlive, immediate);
-    };
-    return acc;
-}, {});
-var cancelSync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
-    acc[key] = steps[key].cancel;
-    return acc;
-}, {});
-var flushSync = /*#__PURE__*/stepsOrder.reduce(function (acc, key) {
-    acc[key] = function () {
-        return steps[key].process(frame);
-    };
-    return acc;
-}, {});
-var processStep = function (stepId) {
-    return steps[stepId].process(frame);
-};
-var processFrame = function (timestamp) {
-    runNextFrame = false;
-    frame.delta = useDefaultElapsed ? defaultTimestep : Math.max(Math.min(timestamp - frame.timestamp, maxElapsed), 1);
-    frame.timestamp = timestamp;
-    isProcessing = true;
-    stepsOrder.forEach(processStep);
-    isProcessing = false;
-    if (runNextFrame) {
-        useDefaultElapsed = false;
-        onNextFrame(processFrame);
-    }
-};
-var startLoop = function () {
-    runNextFrame = true;
-    useDefaultElapsed = true;
-    if (!isProcessing) onNextFrame(processFrame);
-};
-var getFrameData = function () {
-    return frame;
-};
-
 var breakpoints = Object.freeze(["base", "sm", "md", "lg", "xl", "2xl"]);
 function mapResponsive(prop, mapper) {
   if (isArray(prop)) {
@@ -468,739 +808,9 @@ function walkObject(target, predicate) {
   return inner(target);
 }
 
-var classNames = {
-  light: "chakra-ui-light",
-  dark: "chakra-ui-dark"
-};
-
-/**
- * SSR: Graceful fallback for the `body` element
- */
-var mockBody = {
-  classList: {
-    add: noop$2,
-    remove: noop$2
-  }
-};
-
-var getBody = () => isBrowser$1 ? document.body : mockBody;
-/**
- * Function to add/remove class from `body` based on color mode
- */
-
-
-function syncBodyClassName(isDark) {
-  var body = getBody();
-  body.classList.add(isDark ? classNames.dark : classNames.light);
-  body.classList.remove(isDark ? classNames.light : classNames.dark);
-}
-/**
- * Check if JS media query matches the query string passed
- */
-
-function getMediaQuery(query) {
-  var mediaQueryList = window.matchMedia == null ? void 0 : window.matchMedia(query);
-
-  if (!mediaQueryList) {
-    return undefined;
-  }
-
-  return !!mediaQueryList.media === mediaQueryList.matches;
-}
-
-var queries = {
-  light: "(prefers-color-scheme: light)",
-  dark: "(prefers-color-scheme: dark)"
-};
-function getColorScheme(fallback) {
-  var _getMediaQuery;
-
-  var isDark = (_getMediaQuery = getMediaQuery(queries.dark)) != null ? _getMediaQuery : fallback === "dark";
-  return isDark ? "dark" : "light";
-}
-/**
- * Adds system os color mode listener, and run the callback
- * once preference changes
- */
-
-function addListener(fn) {
-  if (!("matchMedia" in window)) {
-    return noop$2;
-  }
-
-  var mediaQueryList = window.matchMedia(queries.dark);
-
-  var listener = () => {
-    fn(mediaQueryList.matches ? "dark" : "light");
-  };
-
-  listener();
-  mediaQueryList.addListener(listener);
-  return () => {
-    mediaQueryList.removeListener(listener);
-  };
-}
-var root = {
-  get: () => document.documentElement.style.getPropertyValue("--chakra-ui-color-mode"),
-  set: mode => {
-    if (isBrowser$1) {
-      document.documentElement.style.setProperty("--chakra-ui-color-mode", mode);
-    }
-  }
-};
-
-var hasSupport = () => typeof Storage !== "undefined";
-
-var storageKey = "chakra-ui-color-mode";
-
-/**
- * Simple object to handle read-write to localStorage
- */
-var localStorageManager = {
-  get(init) {
-    if (!hasSupport()) return init;
-
-    try {
-      var _value = localStorage.getItem(storageKey);
-
-      return _value != null ? _value : init;
-    } catch (error) {
-
-      return init;
-    }
-  },
-
-  set(value) {
-    if (!hasSupport()) return;
-
-    try {
-      localStorage.setItem(storageKey, value);
-    } catch (error) {
-    }
-  },
-
-  type: "localStorage"
-};
-
-var ColorModeContext = /*#__PURE__*/react.createContext({});
-/**
- * React hook that reads from `ColorModeProvider` context
- * Returns the color mode and function to toggle it
- */
-
-
-var useColorMode = () => {
-  var context = react.useContext(ColorModeContext);
-
-  if (context === undefined) {
-    throw new Error("useColorMode must be used within a ColorModeProvider");
-  }
-
-  return context;
-};
-
-/**
- * Provides context for the color mode based on config in `theme`
- * Returns the color mode and function to toggle the color mode
- */
-function ColorModeProvider(props) {
-  var {
-    value,
-    children,
-    options: {
-      useSystemColorMode,
-      initialColorMode
-    },
-    colorModeManager = localStorageManager
-  } = props;
-  /**
-   * Only attempt to retrieve if we're on the server. Else this will result
-   * in a hydration mismatch warning and partially invalid visuals.
-   *
-   * Else fallback safely to `theme.config.initialColormode` (default light)
-   */
-
-  var [colorMode, rawSetColorMode] = react.useState(colorModeManager.type === "cookie" ? colorModeManager.get(initialColorMode) : initialColorMode);
-  react.useEffect(() => {
-    /**
-     * Since we cannot initially retrieve localStorage to due above mentioned
-     * reasons, do so after hydration.
-     *
-     * Priority:
-     * - system color mode
-     * - defined value on <ColorModeScript />, if present
-     * - previously stored value
-     */
-    if (isBrowser$1 && colorModeManager.type === "localStorage") {
-      var mode = useSystemColorMode ? getColorScheme(initialColorMode) : root.get() || colorModeManager.get();
-
-      if (mode) {
-        rawSetColorMode(mode);
-      }
-    }
-  }, [colorModeManager, useSystemColorMode, initialColorMode]);
-  react.useEffect(() => {
-    var isDark = colorMode === "dark";
-    syncBodyClassName(isDark);
-    root.set(isDark ? "dark" : "light");
-  }, [colorMode]);
-  var setColorMode = react.useCallback(value => {
-    colorModeManager.set(value);
-    rawSetColorMode(value);
-  }, [colorModeManager]);
-  var toggleColorMode = react.useCallback(() => {
-    setColorMode(colorMode === "light" ? "dark" : "light");
-  }, [colorMode, setColorMode]);
-  react.useEffect(() => {
-    var removeListener;
-
-    if (useSystemColorMode) {
-      removeListener = addListener(setColorMode);
-    }
-
-    return () => {
-      if (removeListener && useSystemColorMode) {
-        removeListener();
-      }
-    };
-  }, [setColorMode, useSystemColorMode]); // presence of `value` indicates a controlled context
-
-  var context = react.useMemo(() => ({
-    colorMode: value != null ? value : colorMode,
-    toggleColorMode: value ? noop$2 : toggleColorMode,
-    setColorMode: value ? noop$2 : setColorMode
-  }), [colorMode, setColorMode, toggleColorMode, value]);
-  return /*#__PURE__*/react.createElement(ColorModeContext.Provider, {
-    value: context
-  }, children);
-}
-/**
- * Change value based on color mode.
- *
- * @param light the light mode value
- * @param dark the dark mode value
- *
- * @example
- *
- * ```js
- * const Icon = useColorModeValue(MoonIcon, SunIcon)
- * ```
- */
-
-
-function useColorModeValue(light, dark) {
-  var {
-    colorMode
-  } = useColorMode();
-  return colorMode === "dark" ? dark : light;
-}
-
-function setScript(initialValue) {
-  var mql = window.matchMedia("(prefers-color-scheme: dark)");
-  var systemPreference = mql.matches ? "dark" : "light";
-  var persistedPreference;
-
-  try {
-    persistedPreference = localStorage.getItem("chakra-ui-color-mode");
-  } catch (error) {
-    console.log("Chakra UI: localStorage is not available. Color mode persistence might not work as expected");
-  }
-
-  var isInStorage = typeof persistedPreference === "string";
-  var colorMode;
-
-  if (isInStorage) {
-    colorMode = persistedPreference;
-  } else {
-    colorMode = initialValue === "system" ? systemPreference : initialValue;
-  }
-
-  if (colorMode) {
-    var root = document.documentElement;
-    root.style.setProperty("--chakra-ui-color-mode", colorMode);
-  }
-}
-
-/**
- * Script to add to the root of your application when using localStorage,
- * to help prevent flash of color mode that can happen during page load.
- */
-var ColorModeScript = props => {
-  var {
-    initialColorMode = "light"
-  } = props;
-  var html = "(" + String(setScript) + ")('" + initialColorMode + "')";
-  return /*#__PURE__*/react.createElement("script", {
-    nonce: props.nonce,
-    dangerouslySetInnerHTML: {
-      __html: html
-    }
-  });
-};
-
-function replaceWhiteSpace(value, replaceValue) {
-  if (replaceValue === void 0) {
-    replaceValue = "-";
-  }
-
-  return value.replace(/\s+/g, replaceValue);
-}
-
-function escape(value) {
-  var valueStr = replaceWhiteSpace(value.toString());
-  if (valueStr.includes("\\.")) return value;
-  var isDecimal = !Number.isInteger(parseFloat(value.toString()));
-  return isDecimal ? valueStr.replace(".", "\\.") : value;
-}
-
-function addPrefix(value, prefix) {
-  if (prefix === void 0) {
-    prefix = "";
-  }
-
-  return [prefix, escape(value)].filter(Boolean).join("-");
-}
-function toVarReference(name, fallback) {
-  return "var(" + escape(name) + (fallback ? ", " + fallback : "") + ")";
-}
-function toVarDefinition(value, prefix) {
-  if (prefix === void 0) {
-    prefix = "";
-  }
-
-  return "--" + addPrefix(value, prefix);
-}
-function cssVar(name, fallback, cssVarPrefix) {
-  var cssVariable = toVarDefinition(name, cssVarPrefix);
-  return {
-    variable: cssVariable,
-    reference: toVarReference(cssVariable, fallback)
-  };
-}
-
-function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
-function createThemeVars(target, options) {
-  var context = {
-    cssMap: {},
-    cssVars: {}
-  };
-  walkObject(target, (value, path) => {
-    var _tokenHandlerMap$firs;
-
-    // firstKey will be e.g. "space"
-    var [firstKey] = path;
-    var handler = (_tokenHandlerMap$firs = tokenHandlerMap[firstKey]) != null ? _tokenHandlerMap$firs : tokenHandlerMap.defaultHandler;
-    var {
-      cssVars,
-      cssMap
-    } = handler(path, value, options);
-    Object.assign(context.cssVars, cssVars);
-    Object.assign(context.cssMap, cssMap);
-  });
-  return context;
-}
-
-/**
- * Define transformation handlers for ThemeScale
- */
-var tokenHandlerMap = {
-  space: (keys, value, options) => {
-    var properties = tokenHandlerMap.defaultHandler(keys, value, options);
-    var [firstKey, ...referenceKeys] = keys;
-    var negativeLookupKey = firstKey + ".-" + referenceKeys.join(".");
-    var negativeVarKey = keys.join("-");
-    var {
-      variable,
-      reference
-    } = cssVar(negativeVarKey, undefined, options.cssVarPrefix);
-    var negativeValue = calc.negate(value);
-    var varRef = calc.negate(reference);
-    return {
-      cssVars: properties.cssVars,
-      cssMap: _extends({}, properties.cssMap, {
-        [negativeLookupKey]: {
-          value: "" + negativeValue,
-          var: "" + variable,
-          varRef
-        }
-      })
-    };
-  },
-  defaultHandler: (keys, value, options) => {
-    var lookupKey = keys.join(".");
-    var varKey = keys.join("-");
-    var {
-      variable,
-      reference
-    } = cssVar(varKey, undefined, options.cssVarPrefix);
-    return {
-      cssVars: {
-        [variable]: value
-      },
-      cssMap: {
-        [lookupKey]: {
-          value,
-          var: variable,
-          varRef: reference
-        }
-      }
-    };
-  }
-};
-
-function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
-var tokens = ["colors", "borders", "borderWidths", "borderStyles", "fonts", "fontSizes", "fontWeights", "letterSpacings", "lineHeights", "radii", "space", "shadows", "sizes", "zIndices", "transition", "blur"];
-function extractTokens(theme) {
-  var _tokens = tokens;
-  return pick(theme, _tokens);
-}
-function omitVars(rawTheme) {
-  var cleanTheme = _objectWithoutPropertiesLoose(rawTheme, ["__cssMap", "__cssVars", "__breakpoints"]);
-
-  return cleanTheme;
-}
-
-function _extends$1() { _extends$1 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$1.apply(this, arguments); }
-function toCSSVar(rawTheme) {
-  var _theme$config;
-
-  /**
-   * In the case the theme has already been converted to css-var (e.g extending the theme),
-   * we can omit the computed css vars and recompute it for the extended theme.
-   */
-  var theme = omitVars(rawTheme); // omit components and breakpoints from css variable map
-
-  var tokens = extractTokens(theme);
-  var cssVarPrefix = (_theme$config = theme.config) == null ? void 0 : _theme$config.cssVarPrefix;
-  var {
-    /**
-     * This is more like a dictionary of tokens users will type `green.500`,
-     * and their equivalent css variable.
-     */
-    cssMap,
-
-    /**
-     * The extracted css variables will be stored here, and used in
-     * the emotion's <Global/> component to attach variables to `:root`
-     */
-    cssVars
-  } = createThemeVars(tokens, {
-    cssVarPrefix
-  });
-  var defaultCssVars = {
-    "--chakra-ring-inset": "var(--chakra-empty,/*!*/ /*!*/)",
-    "--chakra-ring-offset-width": "0px",
-    "--chakra-ring-offset-color": "#fff",
-    "--chakra-ring-color": "rgba(66, 153, 225, 0.6)",
-    "--chakra-ring-offset-shadow": "0 0 #0000",
-    "--chakra-ring-shadow": "0 0 #0000",
-    "--chakra-space-x-reverse": "0",
-    "--chakra-space-y-reverse": "0"
-  };
-  Object.assign(theme, {
-    __cssVars: _extends$1({}, defaultCssVars, cssVars),
-    __cssMap: cssMap,
-    __breakpoints: analyzeBreakpoints(theme.breakpoints)
-  });
-  return theme;
-}
-
-/** @license React v16.13.1
- * react-is.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-var b="function"===typeof Symbol&&Symbol.for,c=b?Symbol.for("react.element"):60103,d=b?Symbol.for("react.portal"):60106,e=b?Symbol.for("react.fragment"):60107,f=b?Symbol.for("react.strict_mode"):60108,g=b?Symbol.for("react.profiler"):60114,h=b?Symbol.for("react.provider"):60109,k=b?Symbol.for("react.context"):60110,l=b?Symbol.for("react.async_mode"):60111,m=b?Symbol.for("react.concurrent_mode"):60111,n=b?Symbol.for("react.forward_ref"):60112,p=b?Symbol.for("react.suspense"):60113,q=b?
-Symbol.for("react.suspense_list"):60120,r=b?Symbol.for("react.memo"):60115,t=b?Symbol.for("react.lazy"):60116,v=b?Symbol.for("react.block"):60121,w=b?Symbol.for("react.fundamental"):60117,x=b?Symbol.for("react.responder"):60118,y=b?Symbol.for("react.scope"):60119;
-function z(a){if("object"===typeof a&&null!==a){var u=a.$$typeof;switch(u){case c:switch(a=a.type,a){case l:case m:case e:case g:case f:case p:return a;default:switch(a=a&&a.$$typeof,a){case k:case n:case t:case r:case h:return a;default:return u}}case d:return u}}}function A(a){return z(a)===m}var AsyncMode=l;var ConcurrentMode=m;var ContextConsumer=k;var ContextProvider=h;var Element$1=c;var ForwardRef=n;var Fragment=e;var Lazy=t;var Memo=r;var Portal=d;
-var Profiler=g;var StrictMode=f;var Suspense=p;var isAsyncMode=function(a){return A(a)||z(a)===l};var isConcurrentMode=A;var isContextConsumer=function(a){return z(a)===k};var isContextProvider=function(a){return z(a)===h};var isElement=function(a){return "object"===typeof a&&null!==a&&a.$$typeof===c};var isForwardRef=function(a){return z(a)===n};var isFragment=function(a){return z(a)===e};var isLazy=function(a){return z(a)===t};
-var isMemo=function(a){return z(a)===r};var isPortal=function(a){return z(a)===d};var isProfiler=function(a){return z(a)===g};var isStrictMode=function(a){return z(a)===f};var isSuspense=function(a){return z(a)===p};
-var isValidElementType=function(a){return "string"===typeof a||"function"===typeof a||a===e||a===m||a===g||a===f||a===p||a===q||"object"===typeof a&&null!==a&&(a.$$typeof===t||a.$$typeof===r||a.$$typeof===h||a.$$typeof===k||a.$$typeof===n||a.$$typeof===w||a.$$typeof===x||a.$$typeof===y||a.$$typeof===v)};var typeOf=z;
-
-var reactIs_production_min = {
-	AsyncMode: AsyncMode,
-	ConcurrentMode: ConcurrentMode,
-	ContextConsumer: ContextConsumer,
-	ContextProvider: ContextProvider,
-	Element: Element$1,
-	ForwardRef: ForwardRef,
-	Fragment: Fragment,
-	Lazy: Lazy,
-	Memo: Memo,
-	Portal: Portal,
-	Profiler: Profiler,
-	StrictMode: StrictMode,
-	Suspense: Suspense,
-	isAsyncMode: isAsyncMode,
-	isConcurrentMode: isConcurrentMode,
-	isContextConsumer: isContextConsumer,
-	isContextProvider: isContextProvider,
-	isElement: isElement,
-	isForwardRef: isForwardRef,
-	isFragment: isFragment,
-	isLazy: isLazy,
-	isMemo: isMemo,
-	isPortal: isPortal,
-	isProfiler: isProfiler,
-	isStrictMode: isStrictMode,
-	isSuspense: isSuspense,
-	isValidElementType: isValidElementType,
-	typeOf: typeOf
-};
-
-var reactIs = createCommonjsModule(function (module) {
-
-{
-  module.exports = reactIs_production_min;
-}
+var CSSReset = () => /*#__PURE__*/react.createElement(Global, {
+  styles: "\n      html {\n        line-height: 1.5;\n        -webkit-text-size-adjust: 100%;\n        font-family: system-ui, sans-serif;\n        -webkit-font-smoothing: antialiased;\n        text-rendering: optimizeLegibility;      \n        -moz-osx-font-smoothing: grayscale; \n        touch-action: manipulation; \n      }\n\n      body {\n        position: relative;\n        min-height: 100%;\n        font-feature-settings: 'kern';\n      }\n\n      *,\n      *::before,\n      *::after {\n        border-width: 0;\n        border-style: solid;\n        box-sizing: border-box;\n      }\n\n      main {\n        display: block;\n      }\n\n      hr {\n        border-top-width: 1px;\n        box-sizing: content-box;\n        height: 0;\n        overflow: visible;\n      }\n\n      pre,\n      code,\n      kbd,\n      samp {\n        font-family: SFMono-Regular,  Menlo, Monaco, Consolas, monospace;\n        font-size: 1em;\n      }\n\n      a {\n        background-color: transparent;\n        color: inherit;\n        text-decoration: inherit;\n      }\n\n      abbr[title] {\n        border-bottom: none;\n        text-decoration: underline;\n        -webkit-text-decoration: underline dotted;\n        text-decoration: underline dotted;\n      }\n\n      b,\n      strong {\n        font-weight: bold;\n      }\n\n      small {\n        font-size: 80%;\n      }\n\n      sub,\n      sup {\n        font-size: 75%;\n        line-height: 0;\n        position: relative;\n        vertical-align: baseline;\n      }\n\n      sub {\n        bottom: -0.25em;\n      }\n\n      sup {\n        top: -0.5em;\n      }\n\n      img {\n        border-style: none;\n      }\n\n      button,\n      input,\n      optgroup,\n      select,\n      textarea {\n        font-family: inherit;\n        font-size: 100%;\n        line-height: 1.15;\n        margin: 0;\n      }\n\n      button,\n      input {\n        overflow: visible;\n      }\n\n      button,\n      select {\n        text-transform: none;\n      }\n\n      button::-moz-focus-inner,\n      [type=\"button\"]::-moz-focus-inner,\n      [type=\"reset\"]::-moz-focus-inner,\n      [type=\"submit\"]::-moz-focus-inner {\n        border-style: none;\n        padding: 0;\n      }\n\n      fieldset {\n        padding: 0.35em 0.75em 0.625em;\n      }\n\n      legend {\n        box-sizing: border-box;\n        color: inherit;\n        display: table;\n        max-width: 100%;\n        padding: 0;\n        white-space: normal;\n      }\n\n      progress {\n        vertical-align: baseline;\n      }\n\n      textarea {\n        overflow: auto;\n      }\n\n      [type=\"checkbox\"],\n      [type=\"radio\"] {\n        box-sizing: border-box;\n        padding: 0;\n      }\n\n      [type=\"number\"]::-webkit-inner-spin-button,\n      [type=\"number\"]::-webkit-outer-spin-button {\n        -webkit-appearance: none !important;\n      }\n\n      input[type=\"number\"] {\n        -moz-appearance: textfield;\n      }\n\n      [type=\"search\"] {\n        -webkit-appearance: textfield;\n        outline-offset: -2px;\n      }\n\n      [type=\"search\"]::-webkit-search-decoration {\n        -webkit-appearance: none !important;\n      }\n\n      ::-webkit-file-upload-button {\n        -webkit-appearance: button;\n        font: inherit;\n      }\n\n      details {\n        display: block;\n      }\n\n      summary {\n        display: list-item;\n      }\n\n      template {\n        display: none;\n      }\n\n      [hidden] {\n        display: none !important;\n      }\n\n      body,\n      blockquote,\n      dl,\n      dd,\n      h1,\n      h2,\n      h3,\n      h4,\n      h5,\n      h6,\n      hr,\n      figure,\n      p,\n      pre {\n        margin: 0;\n      }\n\n      button {\n        background: transparent;\n        padding: 0;\n      }\n\n      fieldset {\n        margin: 0;\n        padding: 0;\n      }\n\n      ol,\n      ul {\n        margin: 0;\n        padding: 0;\n      }\n\n      textarea {\n        resize: vertical;\n      }\n\n      button,\n      [role=\"button\"] {\n        cursor: pointer;\n      }\n\n      button::-moz-focus-inner {\n        border: 0 !important;\n      }\n\n      table {\n        border-collapse: collapse;\n      }\n\n      h1,\n      h2,\n      h3,\n      h4,\n      h5,\n      h6 {\n        font-size: inherit;\n        font-weight: inherit;\n      }\n\n      button,\n      input,\n      optgroup,\n      select,\n      textarea {\n        padding: 0;\n        line-height: inherit;\n        color: inherit;\n      }\n\n      img,\n      svg,\n      video,\n      canvas,\n      audio,\n      iframe,\n      embed,\n      object {\n        display: block;\n        vertical-align: middle;\n      }\n\n      img,\n      video {\n        max-width: 100%;\n        height: auto;\n      }\n\n      [data-js-focus-visible] :focus:not([data-focus-visible-added]) {\n        outline: none;\n        box-shadow: none;\n      }\n\n      select::-ms-expand {\n        display: none;\n      }\n    "
 });
-
-var FORWARD_REF_STATICS = {
-  '$$typeof': true,
-  render: true,
-  defaultProps: true,
-  displayName: true,
-  propTypes: true
-};
-var MEMO_STATICS = {
-  '$$typeof': true,
-  compare: true,
-  defaultProps: true,
-  displayName: true,
-  propTypes: true,
-  type: true
-};
-var TYPE_STATICS = {};
-TYPE_STATICS[reactIs.ForwardRef] = FORWARD_REF_STATICS;
-TYPE_STATICS[reactIs.Memo] = MEMO_STATICS;
-
-// initial render from browser, insertBefore context.sheet.tags[0] or if a style hasn't been inserted there yet, appendChild
-// initial client-side render from SSR, use place of hydrating tag
-
-var Global = /* #__PURE__ */withEmotionCache(function (props, cache) {
-
-  var styles = props.styles;
-  var serialized = serializeStyles([styles], undefined, react.useContext(ThemeContext));
-  // but it is based on a constant that will never change at runtime
-  // it's effectively like having two implementations and switching them out
-  // so it's not actually breaking anything
-
-
-  var sheetRef = react.useRef();
-  react.useLayoutEffect(function () {
-    var key = cache.key + "-global";
-    var sheet = new StyleSheet({
-      key: key,
-      nonce: cache.sheet.nonce,
-      container: cache.sheet.container,
-      speedy: cache.sheet.isSpeedy
-    });
-    var rehydrating = false; // $FlowFixMe
-
-    var node = document.querySelector("style[data-emotion=\"" + key + " " + serialized.name + "\"]");
-
-    if (cache.sheet.tags.length) {
-      sheet.before = cache.sheet.tags[0];
-    }
-
-    if (node !== null) {
-      rehydrating = true; // clear the hash so this node won't be recognizable as rehydratable by other <Global/>s
-
-      node.setAttribute('data-emotion', key);
-      sheet.hydrate([node]);
-    }
-
-    sheetRef.current = [sheet, rehydrating];
-    return function () {
-      sheet.flush();
-    };
-  }, [cache]);
-  react.useLayoutEffect(function () {
-    var sheetRefCurrent = sheetRef.current;
-    var sheet = sheetRefCurrent[0],
-        rehydrating = sheetRefCurrent[1];
-
-    if (rehydrating) {
-      sheetRefCurrent[1] = false;
-      return;
-    }
-
-    if (serialized.next !== undefined) {
-      // insert keyframes
-      insertStyles(cache, serialized.next, true);
-    }
-
-    if (sheet.tags.length) {
-      // if this doesn't exist then it will be null so the style element will be appended
-      var element = sheet.tags[sheet.tags.length - 1].nextElementSibling;
-      sheet.before = element;
-      sheet.flush();
-    }
-
-    cache.insert("", serialized, sheet, false);
-  }, [cache, serialized.name]);
-  return null;
-});
-
-function css() {
-  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-    args[_key] = arguments[_key];
-  }
-
-  return serializeStyles(args);
-}
-
-var keyframes = function keyframes() {
-  var insertable = css.apply(void 0, arguments);
-  var name = "animation-" + insertable.name; // $FlowFixMe
-
-  return {
-    name: name,
-    styles: "@keyframes " + name + "{" + insertable.styles + "}",
-    anim: 1,
-    toString: function toString() {
-      return "_EMO_" + this.name + "_" + this.styles + "_EMO_";
-    }
-  };
-};
-
-/* global Map:readonly, Set:readonly, ArrayBuffer:readonly */
-
-var hasElementType = typeof Element !== 'undefined';
-var hasMap = typeof Map === 'function';
-var hasSet = typeof Set === 'function';
-var hasArrayBuffer = typeof ArrayBuffer === 'function' && !!ArrayBuffer.isView;
-
-// Note: We **don't** need `envHasBigInt64Array` in fde es6/index.js
-
-function equal(a, b) {
-  // START: fast-deep-equal es6/index.js 3.1.1
-  if (a === b) return true;
-
-  if (a && b && typeof a == 'object' && typeof b == 'object') {
-    if (a.constructor !== b.constructor) return false;
-
-    var length, i, keys;
-    if (Array.isArray(a)) {
-      length = a.length;
-      if (length != b.length) return false;
-      for (i = length; i-- !== 0;)
-        if (!equal(a[i], b[i])) return false;
-      return true;
-    }
-
-    // START: Modifications:
-    // 1. Extra `has<Type> &&` helpers in initial condition allow es6 code
-    //    to co-exist with es5.
-    // 2. Replace `for of` with es5 compliant iteration using `for`.
-    //    Basically, take:
-    //
-    //    ```js
-    //    for (i of a.entries())
-    //      if (!b.has(i[0])) return false;
-    //    ```
-    //
-    //    ... and convert to:
-    //
-    //    ```js
-    //    it = a.entries();
-    //    while (!(i = it.next()).done)
-    //      if (!b.has(i.value[0])) return false;
-    //    ```
-    //
-    //    **Note**: `i` access switches to `i.value`.
-    var it;
-    if (hasMap && (a instanceof Map) && (b instanceof Map)) {
-      if (a.size !== b.size) return false;
-      it = a.entries();
-      while (!(i = it.next()).done)
-        if (!b.has(i.value[0])) return false;
-      it = a.entries();
-      while (!(i = it.next()).done)
-        if (!equal(i.value[1], b.get(i.value[0]))) return false;
-      return true;
-    }
-
-    if (hasSet && (a instanceof Set) && (b instanceof Set)) {
-      if (a.size !== b.size) return false;
-      it = a.entries();
-      while (!(i = it.next()).done)
-        if (!b.has(i.value[0])) return false;
-      return true;
-    }
-    // END: Modifications
-
-    if (hasArrayBuffer && ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
-      length = a.length;
-      if (length != b.length) return false;
-      for (i = length; i-- !== 0;)
-        if (a[i] !== b[i]) return false;
-      return true;
-    }
-
-    if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
-    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
-    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
-
-    keys = Object.keys(a);
-    length = keys.length;
-    if (length !== Object.keys(b).length) return false;
-
-    for (i = length; i-- !== 0;)
-      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
-    // END: fast-deep-equal
-
-    // START: react-fast-compare
-    // custom handling for DOM elements
-    if (hasElementType && a instanceof Element) return false;
-
-    // custom handling for React/Preact
-    for (i = length; i-- !== 0;) {
-      if ((keys[i] === '_owner' || keys[i] === '__v' || keys[i] === '__o') && a.$$typeof) {
-        // React-specific: avoid traversing React elements' _owner
-        // Preact-specific: avoid traversing Preact elements' __v and __o
-        //    __v = $_original / $_vnode
-        //    __o = $_owner
-        // These properties contain circular references and are not needed when
-        // comparing the actual elements (and not their owners)
-        // .$$typeof and ._store on just reasonable markers of elements
-
-        continue;
-      }
-
-      // all other properties should be traversed as usual
-      if (!equal(a[keys[i]], b[keys[i]])) return false;
-    }
-    // END: react-fast-compare
-
-    // START: fast-deep-equal
-    return true;
-  }
-
-  return a !== a && b !== b;
-}
-// end fast-deep-equal
-
-var reactFastCompare = function isEqual(a, b) {
-  try {
-    return equal(a, b);
-  } catch (error) {
-    if (((error.message || '').match(/stack|recursion/i))) {
-      // warn on circular references, don't crash
-      // browsers give this different errors name and messages:
-      // chrome/safari: "RangeError", "Maximum call stack size exceeded"
-      // firefox: "InternalError", too much recursion"
-      // edge: "Error", "Out of stack space"
-      console.warn('react-fast-compare cannot handle circular refs');
-      return false;
-    }
-    // some other error. we should definitely know about these
-    throw error;
-  }
-};
 
 /**
  * Assigns a value to a ref function or object
@@ -1285,135 +895,6 @@ function createContext(options) {
 function getValidChildren(children) {
   return react.Children.toArray(children).filter(child => /*#__PURE__*/react.isValidElement(child));
 }
-
-var ThemeProvider = props => {
-  var {
-    cssVarsRoot = ":host, :root",
-    theme,
-    children
-  } = props;
-  var computedTheme = react.useMemo(() => toCSSVar(theme), [theme]);
-  return /*#__PURE__*/react.createElement(ThemeProvider$1, {
-    theme: computedTheme
-  }, /*#__PURE__*/react.createElement(Global, {
-    styles: theme => ({
-      [cssVarsRoot]: theme.__cssVars
-    })
-  }), children);
-};
-function useTheme() {
-  var theme = react.useContext(ThemeContext);
-
-  if (!theme) {
-    throw Error("useTheme: `theme` is undefined. Seems you forgot to wrap your app in `<ChakraProvider />` or `<ThemeProvider />`");
-  }
-
-  return theme;
-}
-var [StylesProvider, useStyles] = createContext({
-  name: "StylesContext",
-  errorMessage: "useStyles: `styles` is undefined. Seems you forgot to wrap the components in `<StylesProvider />` "
-});
-/**
- * Applies styles defined in `theme.styles.global` globally
- * using emotion's `Global` component
- */
-
-var GlobalStyle = () => {
-  var {
-    colorMode
-  } = useColorMode();
-  return /*#__PURE__*/react.createElement(Global, {
-    styles: theme => {
-      var styleObjectOrFn = memoizedGet(theme, "styles.global");
-      var globalStyles = runIfFn(styleObjectOrFn, {
-        theme,
-        colorMode
-      });
-      if (!globalStyles) return undefined;
-      var styles = css$1(globalStyles)(theme);
-      return styles;
-    }
-  });
-};
-
-function _extends$2() { _extends$2 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$2.apply(this, arguments); }
-function useChakra() {
-  var colorModeResult = useColorMode();
-  var theme = useTheme();
-  return _extends$2({}, colorModeResult, {
-    theme
-  });
-}
-
-function _objectWithoutPropertiesLoose$1(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
-function useStyleConfig(themeKey, props, opts) {
-  var _styleConfig$defaultP, _opts2;
-
-  if (props === void 0) {
-    props = {};
-  }
-
-  if (opts === void 0) {
-    opts = {};
-  }
-
-  var {
-    styleConfig: styleConfigProp
-  } = props,
-      rest = _objectWithoutPropertiesLoose$1(props, ["styleConfig"]);
-
-  var {
-    theme,
-    colorMode
-  } = useChakra();
-  var themeStyleConfig = memoizedGet(theme, "components." + themeKey);
-  var styleConfig = styleConfigProp || themeStyleConfig;
-  var mergedProps = lodash_mergewith({
-    theme,
-    colorMode
-  }, (_styleConfig$defaultP = styleConfig == null ? void 0 : styleConfig.defaultProps) != null ? _styleConfig$defaultP : {}, filterUndefined(omit(rest, ["children"])));
-  /**
-   * Store the computed styles in a `ref` to avoid unneeded re-computation
-   */
-
-  var stylesRef = react.useRef({});
-  return react.useMemo(() => {
-    if (styleConfig) {
-      var _styleConfig$baseStyl, _styleConfig$variants, _styleConfig$variants2, _styleConfig$sizes$me, _styleConfig$sizes, _opts;
-
-      var baseStyles = runIfFn((_styleConfig$baseStyl = styleConfig.baseStyle) != null ? _styleConfig$baseStyl : {}, mergedProps);
-      var variants = runIfFn((_styleConfig$variants = (_styleConfig$variants2 = styleConfig.variants) == null ? void 0 : _styleConfig$variants2[mergedProps.variant]) != null ? _styleConfig$variants : {}, mergedProps);
-      var sizes = runIfFn((_styleConfig$sizes$me = (_styleConfig$sizes = styleConfig.sizes) == null ? void 0 : _styleConfig$sizes[mergedProps.size]) != null ? _styleConfig$sizes$me : {}, mergedProps);
-      var styles = lodash_mergewith({}, baseStyles, sizes, variants);
-
-      if ((_opts = opts) != null && _opts.isMultiPart && styleConfig.parts) {
-        styleConfig.parts.forEach(part => {
-          var _styles$part;
-
-          styles[part] = (_styles$part = styles[part]) != null ? _styles$part : {};
-        });
-      }
-
-      var isStyleEqual = reactFastCompare(stylesRef.current, styles);
-
-      if (!isStyleEqual) {
-        stylesRef.current = styles;
-      }
-    }
-
-    return stylesRef.current;
-  }, [styleConfig, mergedProps, (_opts2 = opts) == null ? void 0 : _opts2.isMultiPart]);
-}
-function useMultiStyleConfig(themeKey, props) {
-  return useStyleConfig(themeKey, props, {
-    isMultiPart: true
-  });
-}
-
-var CSSReset = () => /*#__PURE__*/react.createElement(Global, {
-  styles: "\n      html {\n        line-height: 1.5;\n        -webkit-text-size-adjust: 100%;\n        font-family: system-ui, sans-serif;\n        -webkit-font-smoothing: antialiased;\n        text-rendering: optimizeLegibility;      \n        -moz-osx-font-smoothing: grayscale; \n        touch-action: manipulation; \n      }\n\n      body {\n        position: relative;\n        min-height: 100%;\n        font-feature-settings: 'kern';\n      }\n\n      *,\n      *::before,\n      *::after {\n        border-width: 0;\n        border-style: solid;\n        box-sizing: border-box;\n      }\n\n      main {\n        display: block;\n      }\n\n      hr {\n        border-top-width: 1px;\n        box-sizing: content-box;\n        height: 0;\n        overflow: visible;\n      }\n\n      pre,\n      code,\n      kbd,\n      samp {\n        font-family: SFMono-Regular,  Menlo, Monaco, Consolas, monospace;\n        font-size: 1em;\n      }\n\n      a {\n        background-color: transparent;\n        color: inherit;\n        text-decoration: inherit;\n      }\n\n      abbr[title] {\n        border-bottom: none;\n        text-decoration: underline;\n        -webkit-text-decoration: underline dotted;\n        text-decoration: underline dotted;\n      }\n\n      b,\n      strong {\n        font-weight: bold;\n      }\n\n      small {\n        font-size: 80%;\n      }\n\n      sub,\n      sup {\n        font-size: 75%;\n        line-height: 0;\n        position: relative;\n        vertical-align: baseline;\n      }\n\n      sub {\n        bottom: -0.25em;\n      }\n\n      sup {\n        top: -0.5em;\n      }\n\n      img {\n        border-style: none;\n      }\n\n      button,\n      input,\n      optgroup,\n      select,\n      textarea {\n        font-family: inherit;\n        font-size: 100%;\n        line-height: 1.15;\n        margin: 0;\n      }\n\n      button,\n      input {\n        overflow: visible;\n      }\n\n      button,\n      select {\n        text-transform: none;\n      }\n\n      button::-moz-focus-inner,\n      [type=\"button\"]::-moz-focus-inner,\n      [type=\"reset\"]::-moz-focus-inner,\n      [type=\"submit\"]::-moz-focus-inner {\n        border-style: none;\n        padding: 0;\n      }\n\n      fieldset {\n        padding: 0.35em 0.75em 0.625em;\n      }\n\n      legend {\n        box-sizing: border-box;\n        color: inherit;\n        display: table;\n        max-width: 100%;\n        padding: 0;\n        white-space: normal;\n      }\n\n      progress {\n        vertical-align: baseline;\n      }\n\n      textarea {\n        overflow: auto;\n      }\n\n      [type=\"checkbox\"],\n      [type=\"radio\"] {\n        box-sizing: border-box;\n        padding: 0;\n      }\n\n      [type=\"number\"]::-webkit-inner-spin-button,\n      [type=\"number\"]::-webkit-outer-spin-button {\n        -webkit-appearance: none !important;\n      }\n\n      input[type=\"number\"] {\n        -moz-appearance: textfield;\n      }\n\n      [type=\"search\"] {\n        -webkit-appearance: textfield;\n        outline-offset: -2px;\n      }\n\n      [type=\"search\"]::-webkit-search-decoration {\n        -webkit-appearance: none !important;\n      }\n\n      ::-webkit-file-upload-button {\n        -webkit-appearance: button;\n        font: inherit;\n      }\n\n      details {\n        display: block;\n      }\n\n      summary {\n        display: list-item;\n      }\n\n      template {\n        display: none;\n      }\n\n      [hidden] {\n        display: none !important;\n      }\n\n      body,\n      blockquote,\n      dl,\n      dd,\n      h1,\n      h2,\n      h3,\n      h4,\n      h5,\n      h6,\n      hr,\n      figure,\n      p,\n      pre {\n        margin: 0;\n      }\n\n      button {\n        background: transparent;\n        padding: 0;\n      }\n\n      fieldset {\n        margin: 0;\n        padding: 0;\n      }\n\n      ol,\n      ul {\n        margin: 0;\n        padding: 0;\n      }\n\n      textarea {\n        resize: vertical;\n      }\n\n      button,\n      [role=\"button\"] {\n        cursor: pointer;\n      }\n\n      button::-moz-focus-inner {\n        border: 0 !important;\n      }\n\n      table {\n        border-collapse: collapse;\n      }\n\n      h1,\n      h2,\n      h3,\n      h4,\n      h5,\n      h6 {\n        font-size: inherit;\n        font-weight: inherit;\n      }\n\n      button,\n      input,\n      optgroup,\n      select,\n      textarea {\n        padding: 0;\n        line-height: inherit;\n        color: inherit;\n      }\n\n      img,\n      svg,\n      video,\n      canvas,\n      audio,\n      iframe,\n      embed,\n      object {\n        display: block;\n        vertical-align: middle;\n      }\n\n      img,\n      video {\n        max-width: 100%;\n        height: auto;\n      }\n\n      [data-js-focus-visible] :focus:not([data-focus-visible-added]) {\n        outline: none;\n        box-shadow: none;\n      }\n\n      select::-ms-expand {\n        display: none;\n      }\n    "
-});
 
 var [PortalManagerContextProvider, usePortalManager] = createContext({
   strict: false,
@@ -1646,7 +1127,7 @@ function copy(text, options) {
 
 var copyToClipboard = copy;
 
-function _objectWithoutPropertiesLoose$2(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * React hook to copy content to clipboard
@@ -1670,7 +1151,7 @@ function useClipboard(text, optionsOrTimeout) {
       {
     timeout = 1500
   } = _ref,
-      copyOptions = _objectWithoutPropertiesLoose$2(_ref, ["timeout"]);
+      copyOptions = _objectWithoutPropertiesLoose(_ref, ["timeout"]);
 
   var onCopy = react.useCallback(() => {
     var didCopy = copyToClipboard(text, copyOptions);
@@ -1756,7 +1237,7 @@ function useIds(idProp) {
   }, [id, prefixes]);
 }
 
-function _extends$3() { _extends$3 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$3.apply(this, arguments); }
+function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 function useDisclosure(props) {
   if (props === void 0) {
     props = {};
@@ -1800,7 +1281,7 @@ function useDisclosure(props) {
         props = {};
       }
 
-      return _extends$3({}, props, {
+      return _extends({}, props, {
         "aria-expanded": "true",
         "aria-controls": id,
         onClick: callAllHandlers(props.onClick, onToggle)
@@ -1811,7 +1292,7 @@ function useDisclosure(props) {
         props = {};
       }
 
-      return _extends$3({}, props, {
+      return _extends({}, props, {
         hidden: !isOpen,
         id
       });
@@ -1841,9 +1322,9 @@ function useForceUpdate() {
   }, [count]);
 }
 
-function _extends$4() { _extends$4 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$4.apply(this, arguments); }
+function _extends$1() { _extends$1 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$1.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$3(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$1(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var [PortalContextProvider, usePortalContext] = createContext({
   strict: false,
   name: "PortalContext"
@@ -1955,9 +1436,9 @@ function Portal$1(props) {
   var {
     containerRef
   } = props,
-      rest = _objectWithoutPropertiesLoose$3(props, ["containerRef"]);
+      rest = _objectWithoutPropertiesLoose$1(props, ["containerRef"]);
 
-  return containerRef ? /*#__PURE__*/react.createElement(ContainerPortal, _extends$4({
+  return containerRef ? /*#__PURE__*/react.createElement(ContainerPortal, _extends$1({
     containerRef: containerRef
   }, rest)) : /*#__PURE__*/react.createElement(DefaultPortal, rest);
 }
@@ -1966,6 +1447,2017 @@ Portal$1.defaultProps = {
 };
 Portal$1.className = PORTAL_CLASSNAME;
 Portal$1.selector = PORTAL_SELECTOR;
+
+var classNames = {
+  light: "chakra-ui-light",
+  dark: "chakra-ui-dark"
+};
+
+/**
+ * SSR: Graceful fallback for the `body` element
+ */
+var mockBody = {
+  classList: {
+    add: noop,
+    remove: noop
+  }
+};
+
+var getBody = () => isBrowser$1 ? document.body : mockBody;
+/**
+ * Function to add/remove class from `body` based on color mode
+ */
+
+
+function syncBodyClassName(isDark) {
+  var body = getBody();
+  body.classList.add(isDark ? classNames.dark : classNames.light);
+  body.classList.remove(isDark ? classNames.light : classNames.dark);
+}
+/**
+ * Check if JS media query matches the query string passed
+ */
+
+function getMediaQuery(query) {
+  var mediaQueryList = window.matchMedia == null ? void 0 : window.matchMedia(query);
+
+  if (!mediaQueryList) {
+    return undefined;
+  }
+
+  return !!mediaQueryList.media === mediaQueryList.matches;
+}
+
+var queries = {
+  light: "(prefers-color-scheme: light)",
+  dark: "(prefers-color-scheme: dark)"
+};
+function getColorScheme(fallback) {
+  var _getMediaQuery;
+
+  var isDark = (_getMediaQuery = getMediaQuery(queries.dark)) != null ? _getMediaQuery : fallback === "dark";
+  return isDark ? "dark" : "light";
+}
+/**
+ * Adds system os color mode listener, and run the callback
+ * once preference changes
+ */
+
+function addListener(fn) {
+  if (!("matchMedia" in window)) {
+    return noop;
+  }
+
+  var mediaQueryList = window.matchMedia(queries.dark);
+
+  var listener = () => {
+    fn(mediaQueryList.matches ? "dark" : "light");
+  };
+
+  listener();
+  mediaQueryList.addListener(listener);
+  return () => {
+    mediaQueryList.removeListener(listener);
+  };
+}
+var root = {
+  get: () => document.documentElement.style.getPropertyValue("--chakra-ui-color-mode"),
+  set: mode => {
+    if (isBrowser$1) {
+      document.documentElement.style.setProperty("--chakra-ui-color-mode", mode);
+    }
+  }
+};
+
+var hasSupport = () => typeof Storage !== "undefined";
+
+var storageKey = "chakra-ui-color-mode";
+
+/**
+ * Simple object to handle read-write to localStorage
+ */
+var localStorageManager = {
+  get(init) {
+    if (!hasSupport()) return init;
+
+    try {
+      var _value = localStorage.getItem(storageKey);
+
+      return _value != null ? _value : init;
+    } catch (error) {
+
+      return init;
+    }
+  },
+
+  set(value) {
+    if (!hasSupport()) return;
+
+    try {
+      localStorage.setItem(storageKey, value);
+    } catch (error) {
+    }
+  },
+
+  type: "localStorage"
+};
+
+var ColorModeContext = /*#__PURE__*/react.createContext({});
+/**
+ * React hook that reads from `ColorModeProvider` context
+ * Returns the color mode and function to toggle it
+ */
+
+
+var useColorMode = () => {
+  var context = react.useContext(ColorModeContext);
+
+  if (context === undefined) {
+    throw new Error("useColorMode must be used within a ColorModeProvider");
+  }
+
+  return context;
+};
+
+/**
+ * Provides context for the color mode based on config in `theme`
+ * Returns the color mode and function to toggle the color mode
+ */
+function ColorModeProvider(props) {
+  var {
+    value,
+    children,
+    options: {
+      useSystemColorMode,
+      initialColorMode
+    },
+    colorModeManager = localStorageManager
+  } = props;
+  /**
+   * Only attempt to retrieve if we're on the server. Else this will result
+   * in a hydration mismatch warning and partially invalid visuals.
+   *
+   * Else fallback safely to `theme.config.initialColormode` (default light)
+   */
+
+  var [colorMode, rawSetColorMode] = react.useState(colorModeManager.type === "cookie" ? colorModeManager.get(initialColorMode) : initialColorMode);
+  react.useEffect(() => {
+    /**
+     * Since we cannot initially retrieve localStorage to due above mentioned
+     * reasons, do so after hydration.
+     *
+     * Priority:
+     * - system color mode
+     * - defined value on <ColorModeScript />, if present
+     * - previously stored value
+     */
+    if (isBrowser$1 && colorModeManager.type === "localStorage") {
+      var mode = useSystemColorMode ? getColorScheme(initialColorMode) : root.get() || colorModeManager.get();
+
+      if (mode) {
+        rawSetColorMode(mode);
+      }
+    }
+  }, [colorModeManager, useSystemColorMode, initialColorMode]);
+  react.useEffect(() => {
+    var isDark = colorMode === "dark";
+    syncBodyClassName(isDark);
+    root.set(isDark ? "dark" : "light");
+  }, [colorMode]);
+  var setColorMode = react.useCallback(value => {
+    colorModeManager.set(value);
+    rawSetColorMode(value);
+  }, [colorModeManager]);
+  var toggleColorMode = react.useCallback(() => {
+    setColorMode(colorMode === "light" ? "dark" : "light");
+  }, [colorMode, setColorMode]);
+  react.useEffect(() => {
+    var removeListener;
+
+    if (useSystemColorMode) {
+      removeListener = addListener(setColorMode);
+    }
+
+    return () => {
+      if (removeListener && useSystemColorMode) {
+        removeListener();
+      }
+    };
+  }, [setColorMode, useSystemColorMode]); // presence of `value` indicates a controlled context
+
+  var context = react.useMemo(() => ({
+    colorMode: value != null ? value : colorMode,
+    toggleColorMode: value ? noop : toggleColorMode,
+    setColorMode: value ? noop : setColorMode
+  }), [colorMode, setColorMode, toggleColorMode, value]);
+  return /*#__PURE__*/react.createElement(ColorModeContext.Provider, {
+    value: context
+  }, children);
+}
+/**
+ * Change value based on color mode.
+ *
+ * @param light the light mode value
+ * @param dark the dark mode value
+ *
+ * @example
+ *
+ * ```js
+ * const Icon = useColorModeValue(MoonIcon, SunIcon)
+ * ```
+ */
+
+
+function useColorModeValue(light, dark) {
+  var {
+    colorMode
+  } = useColorMode();
+  return colorMode === "dark" ? dark : light;
+}
+
+function setScript(initialValue) {
+  var mql = window.matchMedia("(prefers-color-scheme: dark)");
+  var systemPreference = mql.matches ? "dark" : "light";
+  var persistedPreference;
+
+  try {
+    persistedPreference = localStorage.getItem("chakra-ui-color-mode");
+  } catch (error) {
+    console.log("Chakra UI: localStorage is not available. Color mode persistence might not work as expected");
+  }
+
+  var isInStorage = typeof persistedPreference === "string";
+  var colorMode;
+
+  if (isInStorage) {
+    colorMode = persistedPreference;
+  } else {
+    colorMode = initialValue === "system" ? systemPreference : initialValue;
+  }
+
+  if (colorMode) {
+    var root = document.documentElement;
+    root.style.setProperty("--chakra-ui-color-mode", colorMode);
+  }
+}
+
+/**
+ * Script to add to the root of your application when using localStorage,
+ * to help prevent flash of color mode that can happen during page load.
+ */
+var ColorModeScript = props => {
+  var {
+    initialColorMode = "light"
+  } = props;
+  var html = "(" + String(setScript) + ")('" + initialColorMode + "')";
+  return /*#__PURE__*/react.createElement("script", {
+    nonce: props.nonce,
+    dangerouslySetInnerHTML: {
+      __html: html
+    }
+  });
+};
+
+var tokenToCSSVar = (scale, value) => theme => {
+  var valueStr = String(value);
+  var key = scale ? scale + "." + valueStr : valueStr;
+  return isObject(theme.__cssMap) && key in theme.__cssMap ? theme.__cssMap[key].varRef : value;
+};
+function createTransform(options) {
+  var {
+    scale,
+    transform,
+    compose
+  } = options;
+
+  var fn = (value, theme) => {
+    var _transform;
+
+    var _value = tokenToCSSVar(scale, value)(theme);
+
+    var result = (_transform = transform == null ? void 0 : transform(_value, theme)) != null ? _transform : _value;
+
+    if (compose) {
+      result = compose(result, theme);
+    }
+
+    return result;
+  };
+
+  return fn;
+}
+
+function toConfig(scale, transform) {
+  return property => {
+    var result = {
+      property,
+      scale
+    };
+    result.transform = createTransform({
+      scale,
+      transform
+    });
+    return result;
+  };
+}
+
+var getRtl = (_ref) => {
+  var {
+    rtl,
+    ltr
+  } = _ref;
+  return theme => theme.direction === "rtl" ? rtl : ltr;
+};
+
+function logical(options) {
+  var {
+    property,
+    scale,
+    transform
+  } = options;
+  return {
+    scale,
+    property: getRtl(property),
+    transform: scale ? createTransform({
+      scale,
+      compose: transform
+    }) : transform
+  };
+}
+
+/**
+ * The CSS transform order following the upcoming spec from CSSWG
+ * translate => rotate => scale => skew
+ * @see https://drafts.csswg.org/css-transforms-2/#ctm
+ * @see https://www.stefanjudis.com/blog/order-in-css-transformation-transform-functions-vs-individual-transforms/
+ */
+var transformTemplate = ["rotate(var(--chakra-rotate, 0))", "scaleX(var(--chakra-scale-x, 1))", "scaleY(var(--chakra-scale-y, 1))", "skewX(var(--chakra-skew-x, 0))", "skewY(var(--chakra-skew-y, 0))"];
+function getTransformTemplate() {
+  return ["translateX(var(--chakra-translate-x, 0))", "translateY(var(--chakra-translate-y, 0))", ...transformTemplate].join(" ");
+}
+function getTransformGpuTemplate() {
+  return ["translate3d(var(--chakra-translate-x, 0), var(--chakra-translate-y, 0), 0)", ...transformTemplate].join(" ");
+}
+var filterTemplate = {
+  "--chakra-blur": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-brightness": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-contrast": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-grayscale": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-hue-rotate": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-invert": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-saturate": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-sepia": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-drop-shadow": "var(--chakra-empty,/*!*/ /*!*/)",
+  filter: ["var(--chakra-blur)", "var(--chakra-brightness)", "var(--chakra-contrast)", "var(--chakra-grayscale)", "var(--chakra-hue-rotate)", "var(--chakra-invert)", "var(--chakra-saturate)", "var(--chakra-sepia)", "var(--chakra-drop-shadow)"].join(" ")
+};
+var backdropFilterTemplate = {
+  backdropFilter: ["var(--chakra-backdrop-blur)", "var(--chakra-backdrop-brightness)", "var(--chakra-backdrop-contrast)", "var(--chakra-backdrop-grayscale)", "var(--chakra-backdrop-hue-rotate)", "var(--chakra-backdrop-invert)", "var(--chakra-backdrop-opacity)", "var(--chakra-backdrop-saturate)", "var(--chakra-backdrop-sepia)"].join(" "),
+  "--chakra-backdrop-blur": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-brightness": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-contrast": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-grayscale": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-hue-rotate": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-invert": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-opacity": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-saturate": "var(--chakra-empty,/*!*/ /*!*/)",
+  "--chakra-backdrop-sepia": "var(--chakra-empty,/*!*/ /*!*/)"
+};
+function getRingTemplate(value) {
+  return {
+    "--chakra-ring-offset-shadow": "var(--chakra-ring-inset) 0 0 0 var(--chakra-ring-offset-width) var(--chakra-ring-offset-color)",
+    "--chakra-ring-shadow": "var(--chakra-ring-inset) 0 0 0 calc(var(--chakra-ring-width) + var(--chakra-ring-offset-width)) var(--chakra-ring-color)",
+    "--chakra-ring-width": value,
+    boxShadow: ["var(--chakra-ring-offset-shadow)", "var(--chakra-ring-shadow)", "var(--chakra-shadow, 0 0 #0000)"].join(", ")
+  };
+}
+var flexDirectionTemplate = {
+  "row-reverse": {
+    space: "--chakra-space-x-reverse",
+    divide: "--chakra-divide-x-reverse"
+  },
+  "column-reverse": {
+    space: "--chakra-space-y-reverse",
+    divide: "--chakra-divide-y-reverse"
+  }
+};
+var owlSelector = "& > :not(style) ~ :not(style)";
+var spaceXTemplate = {
+  [owlSelector]: {
+    marginInlineStart: "calc(var(--chakra-space-x) * calc(1 - var(--chakra-space-x-reverse)))",
+    marginInlineEnd: "calc(var(--chakra-space-x) * var(--chakra-space-x-reverse))"
+  }
+};
+var spaceYTemplate = {
+  [owlSelector]: {
+    marginTop: "calc(var(--chakra-space-y) * calc(1 - var(--chakra-space-y-reverse)))",
+    marginBottom: "calc(var(--chakra-space-y) * var(--chakra-space-y-reverse))"
+  }
+};
+
+function _wrapRegExp(re, groups) { _wrapRegExp = function _wrapRegExp(re, groups) { return new BabelRegExp(re, undefined, groups); }; var _RegExp = _wrapNativeSuper(RegExp); var _super = RegExp.prototype; var _groups = new WeakMap(); function BabelRegExp(re, flags, groups) { var _this = _RegExp.call(this, re, flags); _groups.set(_this, groups || _groups.get(re)); return _this; } _inherits(BabelRegExp, _RegExp); BabelRegExp.prototype.exec = function (str) { var result = _super.exec.call(this, str); if (result) result.groups = buildGroups(result, this); return result; }; BabelRegExp.prototype[Symbol.replace] = function (str, substitution) { if (typeof substitution === "string") { var groups = _groups.get(this); return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) { return "$" + groups[name]; })); } else if (typeof substitution === "function") { var _this = this; return _super[Symbol.replace].call(this, str, function () { var args = []; args.push.apply(args, arguments); if (typeof args[args.length - 1] !== "object") { args.push(buildGroups(args, _this)); } return substitution.apply(this, args); }); } else { return _super[Symbol.replace].call(this, str, substitution); } }; function buildGroups(result, re) { var g = _groups.get(re); return Object.keys(g).reduce(function (groups, name) { groups[name] = result[g[name]]; return groups; }, Object.create(null)); } return _wrapRegExp.apply(this, arguments); }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _wrapNativeSuper(Class) { var _cache = typeof Map === "function" ? new Map() : undefined; _wrapNativeSuper = function _wrapNativeSuper(Class) { if (Class === null || !_isNativeFunction(Class)) return Class; if (typeof Class !== "function") { throw new TypeError("Super expression must either be null or a function"); } if (typeof _cache !== "undefined") { if (_cache.has(Class)) return _cache.get(Class); _cache.set(Class, Wrapper); } function Wrapper() { return _construct(Class, arguments, _getPrototypeOf(this).constructor); } Wrapper.prototype = Object.create(Class.prototype, { constructor: { value: Wrapper, enumerable: false, writable: true, configurable: true } }); return _setPrototypeOf(Wrapper, Class); }; return _wrapNativeSuper(Class); }
+
+function _construct(Parent, args, Class) { if (_isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _isNativeFunction(fn) { return Function.toString.call(fn).indexOf("[native code]") !== -1; }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+var directionMap = {
+  "to-t": "to top",
+  "to-tr": "to top right",
+  "to-r": "to right",
+  "to-br": "to bottom right",
+  "to-b": "to bottom",
+  "to-bl": "to bottom left",
+  "to-l": "to left",
+  "to-tl": "to top left"
+};
+var valueSet = new Set(Object.values(directionMap));
+var globalSet = new Set(["none", "-moz-initial", "inherit", "initial", "revert", "unset"]);
+
+var trimSpace = str => str.trim();
+
+function parseGradient(value, theme) {
+  var _regex$exec$groups, _regex$exec;
+
+  if (value == null || globalSet.has(value)) return value;
+
+  var regex = /*#__PURE__*/_wrapRegExp(/(^[\x2DA-Za-z]+)\(((.*))\)/g, {
+    type: 1,
+    values: 2
+  });
+
+  var {
+    type,
+    values
+  } = (_regex$exec$groups = (_regex$exec = regex.exec(value)) == null ? void 0 : _regex$exec.groups) != null ? _regex$exec$groups : {};
+  if (!type || !values) return value;
+
+  var _type = type.includes("-gradient") ? type : type + "-gradient";
+
+  var [maybeDirection, ...stops] = values.split(",").map(trimSpace).filter(Boolean);
+  if ((stops == null ? void 0 : stops.length) === 0) return value;
+  var direction = maybeDirection in directionMap ? directionMap[maybeDirection] : maybeDirection;
+  stops.unshift(direction);
+
+  var _values = stops.map(stop => {
+    // if stop is valid shorthand direction, return it
+    if (valueSet.has(stop)) return stop;
+    var firstStop = stop.indexOf(" "); // color stop could be `red.200 20%` based on css gradient spec
+
+    var [_color, _stop] = firstStop !== -1 ? [stop.substr(0, firstStop), stop.substr(firstStop + 1)] : [stop];
+
+    var _stopOrFunc = isCSSFunction(_stop) ? _stop : _stop && _stop.split(" "); // else, get and transform the color token or css value
+
+
+    var key = "colors." + _color;
+    var color = key in theme.__cssMap ? theme.__cssMap[key].varRef : _color;
+    return _stopOrFunc ? [color, _stopOrFunc].join(" ") : color;
+  });
+
+  return _type + "(" + _values.join(", ") + ")";
+}
+var isCSSFunction = value => {
+  return isString(value) && value.includes("(") && value.includes(")");
+};
+var gradientTransform = (value, theme) => parseGradient(value, theme != null ? theme : {});
+
+var analyzeCSSValue$1 = value => {
+  var num = parseFloat(value.toString());
+  var unit = value.toString().replace(String(num), "");
+  return {
+    unitless: !unit,
+    value: num,
+    unit
+  };
+};
+
+var wrap = str => value => str + "(" + value + ")";
+
+var transformFunctions = {
+  filter(value) {
+    return value !== "auto" ? value : filterTemplate;
+  },
+
+  backdropFilter(value) {
+    return value !== "auto" ? value : backdropFilterTemplate;
+  },
+
+  ring(value) {
+    return getRingTemplate(transformFunctions.px(value));
+  },
+
+  bgClip(value) {
+    return value === "text" ? {
+      color: "transparent",
+      backgroundClip: "text"
+    } : {
+      backgroundClip: value
+    };
+  },
+
+  transform(value) {
+    if (value === "auto") return getTransformTemplate();
+    if (value === "auto-gpu") return getTransformGpuTemplate();
+    return value;
+  },
+
+  px(value) {
+    if (value == null) return value;
+    var {
+      unitless
+    } = analyzeCSSValue$1(value);
+    return unitless || isNumber(value) ? value + "px" : value;
+  },
+
+  fraction(value) {
+    return !isNumber(value) || value > 1 ? value : value * 100 + "%";
+  },
+
+  float(value, theme) {
+    var map = {
+      left: "right",
+      right: "left"
+    };
+    return theme.direction === "rtl" ? map[value] : value;
+  },
+
+  degree(value) {
+    if (isCssVar(value) || value == null) return value;
+    var unitless = isString(value) && !value.endsWith("deg");
+    return isNumber(value) || unitless ? value + "deg" : value;
+  },
+
+  gradient: gradientTransform,
+  blur: wrap("blur"),
+  opacity: wrap("opacity"),
+  brightness: wrap("brightness"),
+  contrast: wrap("contrast"),
+  dropShadow: wrap("drop-shadow"),
+  grayscale: wrap("grayscale"),
+  hueRotate: wrap("hue-rotate"),
+  invert: wrap("invert"),
+  saturate: wrap("saturate"),
+  sepia: wrap("sepia"),
+
+  bgImage(value) {
+    if (value == null) return value;
+    var prevent = isCSSFunction(value) || globalSet.has(value);
+    return !prevent ? "url(" + value + ")" : value;
+  },
+
+  outline(value) {
+    var isNoneOrZero = String(value) === "0" || String(value) === "none";
+    return value !== null && isNoneOrZero ? {
+      outline: "2px solid transparent",
+      outlineOffset: "2px"
+    } : {
+      outline: value
+    };
+  },
+
+  flexDirection(value) {
+    var _flexDirectionTemplat;
+
+    var {
+      space,
+      divide
+    } = (_flexDirectionTemplat = flexDirectionTemplate[value]) != null ? _flexDirectionTemplat : {};
+    var result = {
+      flexDirection: value
+    };
+    if (space) result[space] = 1;
+    if (divide) result[divide] = 1;
+    return result;
+  }
+
+};
+
+function _extends$2() { _extends$2 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$2.apply(this, arguments); }
+var t$1 = {
+  borderWidths: toConfig("borderWidths"),
+  borderStyles: toConfig("borderStyles"),
+  colors: toConfig("colors"),
+  borders: toConfig("borders"),
+  radii: toConfig("radii", transformFunctions.px),
+  space: toConfig("space", transformFunctions.px),
+  spaceT: toConfig("space", transformFunctions.px),
+
+  degreeT(property) {
+    return {
+      property,
+      transform: transformFunctions.degree
+    };
+  },
+
+  prop(property, scale, transform) {
+    return _extends$2({
+      property,
+      scale
+    }, scale && {
+      transform: createTransform({
+        scale,
+        transform
+      })
+    });
+  },
+
+  propT(property, transform) {
+    return {
+      property,
+      transform
+    };
+  },
+
+  sizes: toConfig("sizes", transformFunctions.px),
+  sizesT: toConfig("sizes", transformFunctions.fraction),
+  shadows: toConfig("shadows"),
+  logical,
+  blur: toConfig("blur", transformFunctions.blur)
+};
+
+var background = {
+  background: t$1.colors("background"),
+  backgroundColor: t$1.colors("backgroundColor"),
+  backgroundImage: t$1.propT("backgroundImage", transformFunctions.bgImage),
+  backgroundSize: true,
+  backgroundPosition: true,
+  backgroundRepeat: true,
+  backgroundAttachment: true,
+  backgroundClip: {
+    transform: transformFunctions.bgClip
+  },
+  bgSize: t$1.prop("backgroundSize"),
+  bgPosition: t$1.prop("backgroundPosition"),
+  bg: t$1.colors("background"),
+  bgColor: t$1.colors("backgroundColor"),
+  bgPos: t$1.prop("backgroundPosition"),
+  bgRepeat: t$1.prop("backgroundRepeat"),
+  bgAttachment: t$1.prop("backgroundAttachment"),
+  bgGradient: t$1.propT("backgroundImage", transformFunctions.gradient),
+  bgClip: {
+    transform: transformFunctions.bgClip
+  }
+};
+Object.assign(background, {
+  bgImage: background.backgroundImage,
+  bgImg: background.backgroundImage
+});
+
+var border = {
+  border: t$1.borders("border"),
+  borderWidth: t$1.borderWidths("borderWidth"),
+  borderStyle: t$1.borderStyles("borderStyle"),
+  borderColor: t$1.colors("borderColor"),
+  borderRadius: t$1.radii("borderRadius"),
+  borderTop: t$1.borders("borderTop"),
+  borderBlockStart: t$1.borders("borderBlockStart"),
+  borderTopLeftRadius: t$1.radii("borderTopLeftRadius"),
+  borderStartStartRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: "borderTopLeftRadius",
+      rtl: "borderTopRightRadius"
+    }
+  }),
+  borderEndStartRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: "borderBottomLeftRadius",
+      rtl: "borderBottomRightRadius"
+    }
+  }),
+  borderTopRightRadius: t$1.radii("borderTopRightRadius"),
+  borderStartEndRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: "borderTopRightRadius",
+      rtl: "borderTopLeftRadius"
+    }
+  }),
+  borderEndEndRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: "borderBottomRightRadius",
+      rtl: "borderBottomLeftRadius"
+    }
+  }),
+  borderRight: t$1.borders("borderRight"),
+  borderInlineEnd: t$1.borders("borderInlineEnd"),
+  borderBottom: t$1.borders("borderBottom"),
+  borderBlockEnd: t$1.borders("borderBlockEnd"),
+  borderBottomLeftRadius: t$1.radii("borderBottomLeftRadius"),
+  borderBottomRightRadius: t$1.radii("borderBottomRightRadius"),
+  borderLeft: t$1.borders("borderLeft"),
+  borderInlineStart: {
+    property: "borderInlineStart",
+    scale: "borders"
+  },
+  borderInlineStartRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: ["borderTopLeftRadius", "borderBottomLeftRadius"],
+      rtl: ["borderTopRightRadius", "borderBottomRightRadius"]
+    }
+  }),
+  borderInlineEndRadius: t$1.logical({
+    scale: "radii",
+    property: {
+      ltr: ["borderTopRightRadius", "borderBottomRightRadius"],
+      rtl: ["borderTopLeftRadius", "borderBottomLeftRadius"]
+    }
+  }),
+  borderX: t$1.borders(["borderLeft", "borderRight"]),
+  borderInline: t$1.borders("borderInline"),
+  borderY: t$1.borders(["borderTop", "borderBottom"]),
+  borderBlock: t$1.borders("borderBlock"),
+  borderTopWidth: t$1.borderWidths("borderTopWidth"),
+  borderBlockStartWidth: t$1.borderWidths("borderBlockStartWidth"),
+  borderTopColor: t$1.colors("borderTopColor"),
+  borderBlockStartColor: t$1.colors("borderBlockStartColor"),
+  borderTopStyle: t$1.borderStyles("borderTopStyle"),
+  borderBlockStartStyle: t$1.borderStyles("borderBlockStartStyle"),
+  borderBottomWidth: t$1.borderWidths("borderBottomWidth"),
+  borderBlockEndWidth: t$1.borderWidths("borderBlockEndWidth"),
+  borderBottomColor: t$1.colors("borderBottomColor"),
+  borderBlockEndColor: t$1.colors("borderBlockEndColor"),
+  borderBottomStyle: t$1.borderStyles("borderBottomStyle"),
+  borderBlockEndStyle: t$1.borderStyles("borderBlockEndStyle"),
+  borderLeftWidth: t$1.borderWidths("borderLeftWidth"),
+  borderInlineStartWidth: t$1.borderWidths("borderInlineStartWidth"),
+  borderLeftColor: t$1.colors("borderLeftColor"),
+  borderInlineStartColor: t$1.colors("borderInlineStartColor"),
+  borderLeftStyle: t$1.borderStyles("borderLeftStyle"),
+  borderInlineStartStyle: t$1.borderStyles("borderInlineStartStyle"),
+  borderRightWidth: t$1.borderWidths("borderRightWidth"),
+  borderInlineEndWidth: t$1.borderWidths("borderInlineEndWidth"),
+  borderRightColor: t$1.colors("borderRightColor"),
+  borderInlineEndColor: t$1.colors("borderInlineEndColor"),
+  borderRightStyle: t$1.borderStyles("borderRightStyle"),
+  borderInlineEndStyle: t$1.borderStyles("borderInlineEndStyle"),
+  borderTopRadius: t$1.radii(["borderTopLeftRadius", "borderTopRightRadius"]),
+  borderBottomRadius: t$1.radii(["borderBottomLeftRadius", "borderBottomRightRadius"]),
+  borderLeftRadius: t$1.radii(["borderTopLeftRadius", "borderBottomLeftRadius"]),
+  borderRightRadius: t$1.radii(["borderTopRightRadius", "borderBottomRightRadius"])
+};
+Object.assign(border, {
+  rounded: border.borderRadius,
+  roundedTop: border.borderTopRadius,
+  roundedTopLeft: border.borderTopLeftRadius,
+  roundedTopRight: border.borderTopRightRadius,
+  roundedTopStart: border.borderStartStartRadius,
+  roundedTopEnd: border.borderStartEndRadius,
+  roundedBottom: border.borderBottomRadius,
+  roundedBottomLeft: border.borderBottomLeftRadius,
+  roundedBottomRight: border.borderBottomRightRadius,
+  roundedBottomStart: border.borderEndStartRadius,
+  roundedBottomEnd: border.borderEndEndRadius,
+  roundedLeft: border.borderLeftRadius,
+  roundedRight: border.borderRightRadius,
+  roundedStart: border.borderInlineStartRadius,
+  roundedEnd: border.borderInlineEndRadius,
+  borderStart: border.borderInlineStart,
+  borderEnd: border.borderInlineEnd,
+  borderTopStartRadius: border.borderStartStartRadius,
+  borderTopEndRadius: border.borderStartEndRadius,
+  borderBottomStartRadius: border.borderEndStartRadius,
+  borderBottomEndRadius: border.borderEndEndRadius,
+  borderStartRadius: border.borderInlineStartRadius,
+  borderEndRadius: border.borderInlineEndRadius,
+  borderStartWidth: border.borderInlineStartWidth,
+  borderEndWidth: border.borderInlineEndWidth,
+  borderStartColor: border.borderInlineStartColor,
+  borderEndColor: border.borderInlineEndColor,
+  borderStartStyle: border.borderInlineStartStyle,
+  borderEndStyle: border.borderInlineEndStyle
+});
+/**
+ * The prop types for border properties listed above
+ */
+
+var color = {
+  color: t$1.colors("color"),
+  textColor: t$1.colors("color"),
+  fill: t$1.colors("fill"),
+  stroke: t$1.colors("stroke")
+};
+
+var effect = {
+  boxShadow: t$1.shadows("boxShadow"),
+  mixBlendMode: true,
+  blendMode: t$1.prop("mixBlendMode"),
+  backgroundBlendMode: true,
+  bgBlendMode: t$1.prop("backgroundBlendMode"),
+  opacity: true
+};
+Object.assign(effect, {
+  shadow: effect.boxShadow
+});
+/**
+ * Types for box and text shadow properties
+ */
+
+var filter = {
+  filter: {
+    transform: transformFunctions.filter
+  },
+  blur: t$1.blur("--chakra-blur"),
+  brightness: t$1.propT("--chakra-brightness", transformFunctions.brightness),
+  contrast: t$1.propT("--chakra-contrast", transformFunctions.contrast),
+  hueRotate: t$1.degreeT("--chakra-hue-rotate"),
+  invert: t$1.propT("--chakra-invert", transformFunctions.invert),
+  saturate: t$1.propT("--chakra-saturate", transformFunctions.saturate),
+  dropShadow: t$1.propT("--chakra-drop-shadow", transformFunctions.dropShadow),
+  backdropFilter: {
+    transform: transformFunctions.backdropFilter
+  },
+  backdropBlur: t$1.blur("--chakra-backdrop-blur"),
+  backdropBrightness: t$1.propT("--chakra-backdrop-brightness", transformFunctions.brightness),
+  backdropContrast: t$1.propT("--chakra-backdrop-contrast", transformFunctions.contrast),
+  backdropHueRotate: t$1.degreeT("--chakra-backdrop-hue-rotate"),
+  backdropInvert: t$1.propT("--chakra-backdrop-invert", transformFunctions.invert),
+  backdropSaturate: t$1.propT("--chakra-backdrop-saturate", transformFunctions.saturate)
+};
+
+var flexbox = {
+  alignItems: true,
+  alignContent: true,
+  justifyItems: true,
+  justifyContent: true,
+  flexWrap: true,
+  flexDirection: {
+    transform: transformFunctions.flexDirection
+  },
+  experimental_spaceX: {
+    static: spaceXTemplate,
+    transform: createTransform({
+      scale: "space",
+      transform: value => value !== null ? {
+        "--chakra-space-x": value
+      } : null
+    })
+  },
+  experimental_spaceY: {
+    static: spaceYTemplate,
+    transform: createTransform({
+      scale: "space",
+      transform: value => value != null ? {
+        "--chakra-space-y": value
+      } : null
+    })
+  },
+  flex: true,
+  flexFlow: true,
+  flexGrow: true,
+  flexShrink: true,
+  flexBasis: t$1.sizes("flexBasis"),
+  justifySelf: true,
+  alignSelf: true,
+  order: true,
+  placeItems: true,
+  placeContent: true,
+  placeSelf: true
+};
+Object.assign(flexbox, {
+  flexDir: flexbox.flexDirection
+});
+
+var grid = {
+  gridGap: t$1.space("gridGap"),
+  gridColumnGap: t$1.space("gridColumnGap"),
+  gridRowGap: t$1.space("gridRowGap"),
+  gridColumn: true,
+  gridRow: true,
+  gridAutoFlow: true,
+  gridAutoColumns: true,
+  gridColumnStart: true,
+  gridColumnEnd: true,
+  gridRowStart: true,
+  gridRowEnd: true,
+  gridAutoRows: true,
+  gridTemplate: true,
+  gridTemplateColumns: true,
+  gridTemplateRows: true,
+  gridTemplateAreas: true,
+  gridArea: true
+};
+
+var interactivity = {
+  appearance: true,
+  cursor: true,
+  resize: true,
+  userSelect: true,
+  pointerEvents: true,
+  outline: {
+    transform: transformFunctions.outline
+  },
+  outlineOffset: true,
+  outlineColor: t$1.colors("outlineColor")
+};
+
+var layout = {
+  width: t$1.sizesT("width"),
+  inlineSize: t$1.sizesT("inlineSize"),
+  height: t$1.sizes("height"),
+  blockSize: t$1.sizes("blockSize"),
+  boxSize: t$1.sizes(["width", "height"]),
+  minWidth: t$1.sizes("minWidth"),
+  minInlineSize: t$1.sizes("minInlineSize"),
+  minHeight: t$1.sizes("minHeight"),
+  minBlockSize: t$1.sizes("minBlockSize"),
+  maxWidth: t$1.sizes("maxWidth"),
+  maxInlineSize: t$1.sizes("maxInlineSize"),
+  maxHeight: t$1.sizes("maxHeight"),
+  maxBlockSize: t$1.sizes("maxBlockSize"),
+  d: t$1.prop("display"),
+  overflow: true,
+  overflowX: true,
+  overflowY: true,
+  overscrollBehavior: true,
+  overscrollBehaviorX: true,
+  overscrollBehaviorY: true,
+  display: true,
+  verticalAlign: true,
+  boxSizing: true,
+  boxDecorationBreak: true,
+  float: t$1.propT("float", transformFunctions.float),
+  objectFit: true,
+  objectPosition: true,
+  visibility: true,
+  isolation: true
+};
+Object.assign(layout, {
+  w: layout.width,
+  h: layout.height,
+  minW: layout.minWidth,
+  maxW: layout.maxWidth,
+  minH: layout.minHeight,
+  maxH: layout.maxHeight,
+  overscroll: layout.overscrollBehavior,
+  overscrollX: layout.overscrollBehaviorX,
+  overscrollY: layout.overscrollBehaviorY
+});
+/**
+ * Types for layout related CSS properties
+ */
+
+var list = {
+  listStyleType: true,
+  listStylePosition: true,
+  listStylePos: t$1.prop("listStylePosition"),
+  listStyleImage: true,
+  listStyleImg: t$1.prop("listStyleImage")
+};
+
+var srOnly = {
+  border: "0px",
+  clip: "rect(0, 0, 0, 0)",
+  width: "1px",
+  height: "1px",
+  margin: "-1px",
+  padding: "0px",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  position: "absolute"
+};
+var srFocusable = {
+  position: "static",
+  width: "auto",
+  height: "auto",
+  clip: "auto",
+  padding: "0",
+  margin: "0",
+  overflow: "visible",
+  whiteSpace: "normal"
+};
+
+var getWithPriority = (theme, key, styles) => {
+  var result = {};
+  var obj = memoizedGet(theme, key, {});
+
+  for (var prop in obj) {
+    var isInStyles = prop in styles && styles[prop] != null;
+    if (!isInStyles) result[prop] = obj[prop];
+  }
+
+  return result;
+};
+
+var others = {
+  srOnly: {
+    transform(value) {
+      if (value === true) return srOnly;
+      if (value === "focusable") return srFocusable;
+      return {};
+    }
+
+  },
+  layerStyle: {
+    processResult: true,
+    transform: (value, theme, styles) => getWithPriority(theme, "layerStyles." + value, styles)
+  },
+  textStyle: {
+    processResult: true,
+    transform: (value, theme, styles) => getWithPriority(theme, "textStyles." + value, styles)
+  },
+  apply: {
+    processResult: true,
+    transform: (value, theme, styles) => getWithPriority(theme, value, styles)
+  }
+};
+
+var position = {
+  position: true,
+  pos: t$1.prop("position"),
+  zIndex: t$1.prop("zIndex", "zIndices"),
+  inset: t$1.spaceT(["top", "right", "bottom", "left"]),
+  insetX: t$1.spaceT(["left", "right"]),
+  insetInline: t$1.spaceT("insetInline"),
+  insetY: t$1.spaceT(["top", "bottom"]),
+  insetBlock: t$1.spaceT("insetBlock"),
+  top: t$1.spaceT("top"),
+  insetBlockStart: t$1.spaceT("insetBlockStart"),
+  bottom: t$1.spaceT("bottom"),
+  insetBlockEnd: t$1.spaceT("insetBlockEnd"),
+  left: t$1.spaceT("left"),
+  insetInlineStart: t$1.logical({
+    scale: "space",
+    property: {
+      ltr: "left",
+      rtl: "right"
+    }
+  }),
+  right: t$1.spaceT("right"),
+  insetInlineEnd: t$1.logical({
+    scale: "space",
+    property: {
+      ltr: "right",
+      rtl: "left"
+    }
+  })
+};
+Object.assign(position, {
+  insetStart: position.insetInlineStart,
+  insetEnd: position.insetInlineEnd
+});
+/**
+ * Types for position CSS properties
+ */
+
+/**
+ * The parser configuration for common outline properties
+ */
+var ring = {
+  ring: {
+    transform: transformFunctions.ring
+  },
+  ringColor: t$1.colors("--chakra-ring-color"),
+  ringOffset: t$1.prop("--chakra-ring-offset-width"),
+  ringOffsetColor: t$1.colors("--chakra-ring-offset-color"),
+  ringInset: t$1.prop("--chakra-ring-inset")
+};
+
+var space = {
+  margin: t$1.spaceT("margin"),
+  marginTop: t$1.spaceT("marginTop"),
+  marginBlockStart: t$1.spaceT("marginBlockStart"),
+  marginRight: t$1.spaceT("marginRight"),
+  marginInlineEnd: t$1.spaceT("marginInlineEnd"),
+  marginBottom: t$1.spaceT("marginBottom"),
+  marginBlockEnd: t$1.spaceT("marginBlockEnd"),
+  marginLeft: t$1.spaceT("marginLeft"),
+  marginInlineStart: t$1.spaceT("marginInlineStart"),
+  marginX: t$1.spaceT(["marginInlineStart", "marginInlineEnd"]),
+  marginInline: t$1.spaceT("marginInline"),
+  marginY: t$1.spaceT(["marginTop", "marginBottom"]),
+  marginBlock: t$1.spaceT("marginBlock"),
+  padding: t$1.space("padding"),
+  paddingTop: t$1.space("paddingTop"),
+  paddingBlockStart: t$1.space("paddingBlockStart"),
+  paddingRight: t$1.space("paddingRight"),
+  paddingBottom: t$1.space("paddingBottom"),
+  paddingBlockEnd: t$1.space("paddingBlockEnd"),
+  paddingLeft: t$1.space("paddingLeft"),
+  paddingInlineStart: t$1.space("paddingInlineStart"),
+  paddingInlineEnd: t$1.space("paddingInlineEnd"),
+  paddingX: t$1.space(["paddingInlineStart", "paddingInlineEnd"]),
+  paddingInline: t$1.space("paddingInline"),
+  paddingY: t$1.space(["paddingTop", "paddingBottom"]),
+  paddingBlock: t$1.space("paddingBlock")
+};
+Object.assign(space, {
+  m: space.margin,
+  mt: space.marginTop,
+  mr: space.marginRight,
+  me: space.marginInlineEnd,
+  marginEnd: space.marginInlineEnd,
+  mb: space.marginBottom,
+  ml: space.marginLeft,
+  ms: space.marginInlineStart,
+  marginStart: space.marginInlineStart,
+  mx: space.marginX,
+  my: space.marginY,
+  p: space.padding,
+  pt: space.paddingTop,
+  py: space.paddingY,
+  px: space.paddingX,
+  pb: space.paddingBottom,
+  pl: space.paddingLeft,
+  ps: space.paddingInlineStart,
+  paddingStart: space.paddingInlineStart,
+  pr: space.paddingRight,
+  pe: space.paddingInlineEnd,
+  paddingEnd: space.paddingInlineEnd
+});
+/**
+ * Types for space related CSS properties
+ */
+
+var textDecoration = {
+  textDecorationColor: t$1.colors("textDecorationColor"),
+  textDecoration: true,
+  textDecor: {
+    property: "textDecoration"
+  },
+  textDecorationLine: true,
+  textDecorationStyle: true,
+  textDecorationThickness: true,
+  textUnderlineOffset: true,
+  textShadow: t$1.shadows("textShadow")
+};
+
+var transform = {
+  clipPath: true,
+  transform: t$1.propT("transform", transformFunctions.transform),
+  transformOrigin: true,
+  translateX: t$1.spaceT("--chakra-translate-x"),
+  translateY: t$1.spaceT("--chakra-translate-y"),
+  skewX: t$1.degreeT("--chakra-skew-x"),
+  skewY: t$1.degreeT("--chakra-skew-y"),
+  scaleX: t$1.prop("--chakra-scale-x"),
+  scaleY: t$1.prop("--chakra-scale-y"),
+  scale: t$1.prop(["--chakra-scale-x", "--chakra-scale-y"]),
+  rotate: t$1.degreeT("--chakra-rotate")
+};
+
+var transition = {
+  transition: true,
+  transitionDelay: true,
+  animation: true,
+  willChange: true,
+  transitionDuration: t$1.prop("transitionDuration", "transition.duration"),
+  transitionProperty: t$1.prop("transitionProperty", "transition.property"),
+  transitionTimingFunction: t$1.prop("transitionTimingFunction", "transition.easing")
+};
+
+var typography = {
+  fontFamily: t$1.prop("fontFamily", "fonts"),
+  fontSize: t$1.prop("fontSize", "fontSizes", transformFunctions.px),
+  fontWeight: t$1.prop("fontWeight", "fontWeights"),
+  lineHeight: t$1.prop("lineHeight", "lineHeights"),
+  letterSpacing: t$1.prop("letterSpacing", "letterSpacings"),
+  textAlign: true,
+  fontStyle: true,
+  wordBreak: true,
+  overflowWrap: true,
+  textOverflow: true,
+  textTransform: true,
+  whiteSpace: true,
+  noOfLines: {
+    static: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      display: "-webkit-box",
+      WebkitBoxOrient: "vertical",
+      //@ts-ignore
+      WebkitLineClamp: "var(--chakra-line-clamp)"
+    },
+    property: "--chakra-line-clamp"
+  },
+  isTruncated: {
+    transform(value) {
+      if (value === true) {
+        return {
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        };
+      }
+    }
+
+  }
+};
+/**
+ * Types for typography related CSS properties
+ */
+
+var group = {
+  hover: selector => selector + ":hover &, " + selector + "[data-hover] &",
+  focus: selector => selector + ":focus &, " + selector + "[data-focus] &",
+  active: selector => selector + ":active &, " + selector + "[data-active] &",
+  disabled: selector => selector + ":disabled &, " + selector + "[data-disabled] &",
+  invalid: selector => selector + ":invalid &, " + selector + "[data-invalid] &",
+  checked: selector => selector + ":checked &, " + selector + "[data-checked] &",
+  indeterminate: selector => selector + ":indeterminate &, " + selector + "[aria-checked=mixed] &, " + selector + "[data-indeterminate] &",
+  readOnly: selector => selector + ":read-only &, " + selector + "[readonly] &, " + selector + "[data-read-only] &",
+  expanded: selector => selector + ":read-only &, " + selector + "[aria-expanded=true] &, " + selector + "[data-expanded] &"
+};
+
+var toGroup = fn => merge(fn, "[role=group]", "[data-group]", ".group");
+
+var merge = function merge(fn) {
+  for (var _len = arguments.length, selectors = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    selectors[_key - 1] = arguments[_key];
+  }
+
+  return selectors.map(fn).join(", ");
+};
+
+var pseudoSelectors = {
+  /**
+   * Styles for CSS selector `&:hover`
+   */
+  _hover: "&:hover, &[data-hover]",
+
+  /**
+   * Styles for CSS Selector `&:active`
+   */
+  _active: "&:active, &[data-active]",
+
+  /**
+   * Styles for CSS selector `&:focus`
+   *
+   */
+  _focus: "&:focus, &[data-focus]",
+
+  /**
+   * Styles for the highlighted state.
+   */
+  _highlighted: "&[data-highlighted]",
+
+  /**
+   * Styles to apply when a child of this element has received focus
+   * - CSS Selector `&:focus-within`
+   */
+  _focusWithin: "&:focus-within",
+  _focusVisible: "&:focus-visible",
+
+  /**
+   * Styles to apply when this element is disabled. The passed styles are applied to these CSS selectors:
+   * - `&[aria-disabled=true]`
+   * - `&:disabled`
+   * - `&[data-disabled]`
+   */
+  _disabled: "&[disabled], &[aria-disabled=true], &[data-disabled]",
+
+  /**
+   * Styles for CSS Selector `&:readonly`
+   */
+  _readOnly: "&[aria-readonly=true], &[readonly], &[data-readonly]",
+
+  /**
+   * Styles for CSS selector `&::before`
+   *
+   * NOTE:When using this, ensure the `content` is wrapped in a backtick.
+   * @example
+   * ```jsx
+   * <Box _before={{content:`""` }}/>
+   * ```
+   */
+  _before: "&::before",
+
+  /**
+   * Styles for CSS selector `&::after`
+   *
+   * NOTE:When using this, ensure the `content` is wrapped in a backtick.
+   * @example
+   * ```jsx
+   * <Box _after={{content:`""` }}/>
+   * ```
+   */
+  _after: "&::after",
+  _empty: "&:empty",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-expanded` is `true`
+   * - CSS selector `&[aria-expanded=true]`
+   */
+  _expanded: "&[aria-expanded=true], &[data-expanded]",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-checked` is `true`
+   * - CSS selector `&[aria-checked=true]`
+   */
+  _checked: "&[aria-checked=true], &[data-checked]",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-grabbed` is `true`
+   * - CSS selector `&[aria-grabbed=true]`
+   */
+  _grabbed: "&[aria-grabbed=true], &[data-grabbed]",
+
+  /**
+   * Styles for CSS Selector `&[aria-pressed=true]`
+   * Typically used to style the current "pressed" state of toggle buttons
+   */
+  _pressed: "&[aria-pressed=true], &[data-pressed]",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-invalid` is `true`
+   * - CSS selector `&[aria-invalid=true]`
+   */
+  _invalid: "&[aria-invalid=true], &[data-invalid]",
+
+  /**
+   * Styles for the valid state
+   * - CSS selector `&[data-valid], &[data-state=valid]`
+   */
+  _valid: "&[data-valid], &[data-state=valid]",
+
+  /**
+   * Styles for CSS Selector `&[aria-busy=true]` or `&[data-loading=true]`.
+   * Useful for styling loading states
+   */
+  _loading: "&[data-loading], &[aria-busy=true]",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-selected` is `true`
+   *
+   * - CSS selector `&[aria-selected=true]`
+   */
+  _selected: "&[aria-selected=true], &[data-selected]",
+
+  /**
+   * Styles for CSS Selector `[hidden=true]`
+   */
+  _hidden: "&[hidden], &[data-hidden]",
+
+  /**
+   * Styles for CSS Selector `&:-webkit-autofill`
+   */
+  _autofill: "&:-webkit-autofill",
+
+  /**
+   * Styles for CSS Selector `&:nth-child(even)`
+   */
+  _even: "&:nth-of-type(even)",
+
+  /**
+   * Styles for CSS Selector `&:nth-child(odd)`
+   */
+  _odd: "&:nth-of-type(odd)",
+
+  /**
+   * Styles for CSS Selector `&:first-of-type`
+   */
+  _first: "&:first-of-type",
+
+  /**
+   * Styles for CSS Selector `&:last-of-type`
+   */
+  _last: "&:last-of-type",
+
+  /**
+   * Styles for CSS Selector `&:not(:first-of-type)`
+   */
+  _notFirst: "&:not(:first-of-type)",
+
+  /**
+   * Styles for CSS Selector `&:not(:last-of-type)`
+   */
+  _notLast: "&:not(:last-of-type)",
+
+  /**
+   * Styles for CSS Selector `&:visited`
+   */
+  _visited: "&:visited",
+
+  /**
+   * Used to style the active link in a navigation
+   * Styles for CSS Selector `&[aria-current=page]`
+   */
+  _activeLink: "&[aria-current=page]",
+
+  /**
+   * Used to style the current step within a process
+   * Styles for CSS Selector `&[aria-current=step]`
+   */
+  _activeStep: "&[aria-current=step]",
+
+  /**
+   * Styles to apply when the ARIA attribute `aria-checked` is `mixed`
+   * - CSS selector `&[aria-checked=mixed]`
+   */
+  _indeterminate: "&:indeterminate, &[aria-checked=mixed], &[data-indeterminate]",
+
+  /**
+   * Styles to apply when parent is hovered
+   */
+  _groupHover: toGroup(group.hover),
+
+  /**
+   * Styles to apply when parent is focused
+   */
+  _groupFocus: toGroup(group.focus),
+
+  /**
+   * Styles to apply when parent is active
+   */
+  _groupActive: toGroup(group.active),
+
+  /**
+   * Styles to apply when parent is disabled
+   */
+  _groupDisabled: toGroup(group.disabled),
+
+  /**
+   * Styles to apply when parent is invalid
+   */
+  _groupInvalid: toGroup(group.invalid),
+
+  /**
+   * Styles to apply when parent is checked
+   */
+  _groupChecked: toGroup(group.checked),
+
+  /**
+   * Styles for CSS Selector `&::placeholder`.
+   */
+  _placeholder: "&::placeholder",
+
+  /**
+   * Styles for CSS Selector `&:fullscreen`.
+   */
+  _fullScreen: "&:fullscreen",
+
+  /**
+   * Styles for CSS Selector `&::selection`
+   */
+  _selection: "&::selection",
+
+  /**
+   * Styles for CSS Selector `[dir=rtl] &`
+   * It is applied when any parent element has `dir="rtl"`
+   */
+  _rtl: "[dir=rtl] &",
+
+  /**
+   * Styles for CSS Selector `@media (prefers-color-scheme: dark)`
+   * used when the user has requested the system
+   * use a light or dark color theme.
+   */
+  _mediaDark: "@media (prefers-color-scheme: dark)",
+
+  /**
+   * Styles for when `data-theme` is applied to any parent of
+   * this component or element.
+   */
+  _dark: ".chakra-ui-dark &, [data-theme=dark] &, &[data-theme=dark]",
+
+  /**
+   * Styles for when `data-theme` is applied to any parent of
+   * this component or element.
+   */
+  _light: ".chakra-ui-light &, [data-theme=light] &, &[data-theme=light]"
+};
+
+function _extends$3() { _extends$3 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$3.apply(this, arguments); }
+var systemProps = lodash_mergewith({}, background, border, color, flexbox, layout, filter, ring, interactivity, grid, others, position, effect, space, typography, textDecoration, transform, list, transition);
+var layoutSystem = Object.assign({}, space, layout, flexbox, grid, position);
+
+var styleProps = _extends$3({}, systemProps, pseudoSelectors);
+
+/**
+ * Expands an array or object syntax responsive style.
+ *
+ * @example
+ * expandResponsive({ mx: [1, 2] })
+ * // or
+ * expandResponsive({ mx: { base: 1, sm: 2 } })
+ *
+ * // => { mx: 1, "@media(min-width:<sm>)": { mx: 2 } }
+ */
+
+var expandResponsive = styles => theme => {
+  /**
+   * Before any style can be processed, the user needs to call `toCSSVar`
+   * which analyzes the theme's breakpoint and appends a `__breakpoints` property
+   * to the theme with more details of the breakpoints.
+   *
+   * To learn more, go here: packages/utils/src/responsive.ts #analyzeBreakpoints
+   */
+  if (!theme.__breakpoints) return styles;
+  var {
+    isResponsive,
+    toArrayValue,
+    media: medias
+  } = theme.__breakpoints;
+  var computedStyles = {};
+
+  for (var key in styles) {
+    var value = runIfFn(styles[key], theme);
+    if (value == null) continue; // converts the object responsive syntax to array syntax
+
+    value = isObject(value) && isResponsive(value) ? toArrayValue(value) : value;
+
+    if (!Array.isArray(value)) {
+      computedStyles[key] = value;
+      continue;
+    }
+
+    var queries = value.slice(0, medias.length).length;
+
+    for (var index = 0; index < queries; index += 1) {
+      var media = medias == null ? void 0 : medias[index];
+
+      if (!media) {
+        computedStyles[key] = value[index];
+        continue;
+      }
+
+      computedStyles[media] = computedStyles[media] || {};
+
+      if (value[index] == null) {
+        continue;
+      }
+
+      computedStyles[media][key] = value[index];
+    }
+  }
+
+  return computedStyles;
+};
+
+var isCSSVariableTokenValue = (key, value) => key.startsWith("--") && isString(value) && !isCssVar(value);
+
+var resolveTokenValue = (theme, value) => {
+  var _ref, _getVar2;
+
+  if (value == null) return value;
+
+  var getVar = val => {
+    var _theme$__cssMap, _theme$__cssMap$val;
+
+    return (_theme$__cssMap = theme.__cssMap) == null ? void 0 : (_theme$__cssMap$val = _theme$__cssMap[val]) == null ? void 0 : _theme$__cssMap$val.varRef;
+  };
+
+  var getValue = val => {
+    var _getVar;
+
+    return (_getVar = getVar(val)) != null ? _getVar : val;
+  };
+
+  var valueSplit = value.split(",").map(v => v.trim());
+  var [tokenValue, fallbackValue] = valueSplit;
+  value = (_ref = (_getVar2 = getVar(tokenValue)) != null ? _getVar2 : getValue(fallbackValue)) != null ? _ref : getValue(value);
+  return value;
+};
+
+function getCss(options) {
+  var {
+    configs = {},
+    pseudos = {},
+    theme
+  } = options;
+
+  var css = function css(stylesOrFn, nested) {
+    if (nested === void 0) {
+      nested = false;
+    }
+
+    var _styles = runIfFn(stylesOrFn, theme);
+
+    var styles = expandResponsive(_styles)(theme);
+    var computedStyles = {};
+
+    for (var key in styles) {
+      var _config$transform, _config, _config2, _config3, _config4;
+
+      var valueOrFn = styles[key];
+      /**
+       * allows the user to pass functional values
+       * boxShadow: theme => `0 2px 2px ${theme.colors.red}`
+       */
+
+      var value = runIfFn(valueOrFn, theme);
+      /**
+       * converts pseudo shorthands to valid selector
+       * "_hover" => "&:hover"
+       */
+
+      if (key in pseudos) {
+        key = pseudos[key];
+      }
+      /**
+       * allows the user to use theme tokens in css vars
+       * { --banner-height: "sizes.md" } => { --banner-height: "var(--chakra-sizes-md)" }
+       *
+       * You can also provide fallback values
+       * { --banner-height: "sizes.no-exist, 40px" } => { --banner-height: "40px" }
+       */
+
+
+      if (isCSSVariableTokenValue(key, value)) {
+        value = resolveTokenValue(theme, value);
+      }
+
+      var config = configs[key];
+
+      if (config === true) {
+        config = {
+          property: key
+        };
+      }
+
+      if (isObject(value)) {
+        var _computedStyles$key;
+
+        computedStyles[key] = (_computedStyles$key = computedStyles[key]) != null ? _computedStyles$key : {};
+        computedStyles[key] = lodash_mergewith({}, computedStyles[key], css(value, true));
+        continue;
+      }
+
+      var rawValue = (_config$transform = (_config = config) == null ? void 0 : _config.transform == null ? void 0 : _config.transform(value, theme, _styles)) != null ? _config$transform : value;
+      /**
+       * Used for `layerStyle`, `textStyle` and `apply`. After getting the
+       * styles in the theme, we need to process them since they might
+       * contain theme tokens.
+       *
+       * `processResult` is the config property we pass to `layerStyle`, `textStyle` and `apply`
+       */
+
+      rawValue = (_config2 = config) != null && _config2.processResult ? css(rawValue, true) : rawValue;
+      /**
+       * allows us define css properties for RTL and LTR.
+       *
+       * const marginStart = {
+       *   property: theme => theme.direction === "rtl" ? "marginRight": "marginLeft",
+       * }
+       */
+
+      var configProperty = runIfFn((_config3 = config) == null ? void 0 : _config3.property, theme);
+
+      if (!nested && (_config4 = config) != null && _config4.static) {
+        var staticStyles = runIfFn(config.static, theme);
+        computedStyles = lodash_mergewith({}, computedStyles, staticStyles);
+      }
+
+      if (configProperty && Array.isArray(configProperty)) {
+        for (var property of configProperty) {
+          computedStyles[property] = rawValue;
+        }
+
+        continue;
+      }
+
+      if (configProperty) {
+        if (configProperty === "&" && isObject(rawValue)) {
+          computedStyles = lodash_mergewith({}, computedStyles, rawValue);
+        } else {
+          computedStyles[configProperty] = rawValue;
+        }
+
+        continue;
+      }
+
+      if (isObject(rawValue)) {
+        computedStyles = lodash_mergewith({}, computedStyles, rawValue);
+        continue;
+      }
+
+      computedStyles[key] = rawValue;
+    }
+
+    return computedStyles;
+  };
+
+  return css;
+}
+var css$1 = styles => theme => {
+  var cssFn = getCss({
+    theme,
+    pseudos: pseudoSelectors,
+    configs: systemProps
+  });
+  return cssFn(styles);
+};
+
+/**
+ * Thank you @markdalgleish for this piece of art!
+ */
+
+function resolveReference(operand) {
+  if (isObject(operand) && operand.reference) {
+    return operand.reference;
+  }
+
+  return String(operand);
+}
+
+var toExpression = function toExpression(operator) {
+  for (var _len = arguments.length, operands = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    operands[_key - 1] = arguments[_key];
+  }
+
+  return operands.map(resolveReference).join(" " + operator + " ").replace(/calc/g, "");
+};
+
+var _add = function add() {
+  for (var _len2 = arguments.length, operands = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+    operands[_key2] = arguments[_key2];
+  }
+
+  return "calc(" + toExpression("+", ...operands) + ")";
+};
+
+var _subtract = function subtract() {
+  for (var _len3 = arguments.length, operands = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+    operands[_key3] = arguments[_key3];
+  }
+
+  return "calc(" + toExpression("-", ...operands) + ")";
+};
+
+var _multiply = function multiply() {
+  for (var _len4 = arguments.length, operands = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+    operands[_key4] = arguments[_key4];
+  }
+
+  return "calc(" + toExpression("*", ...operands) + ")";
+};
+
+var _divide = function divide() {
+  for (var _len5 = arguments.length, operands = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+    operands[_key5] = arguments[_key5];
+  }
+
+  return "calc(" + toExpression("/", ...operands) + ")";
+};
+
+var _negate = x => {
+  var value = resolveReference(x);
+
+  if (value != null && !Number.isNaN(parseFloat(value))) {
+    return String(value).startsWith("-") ? String(value).slice(1) : "-" + value;
+  }
+
+  return _multiply(value, -1);
+};
+
+var calc = Object.assign(x => ({
+  add: function add() {
+    for (var _len6 = arguments.length, operands = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+      operands[_key6] = arguments[_key6];
+    }
+
+    return calc(_add(x, ...operands));
+  },
+  subtract: function subtract() {
+    for (var _len7 = arguments.length, operands = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+      operands[_key7] = arguments[_key7];
+    }
+
+    return calc(_subtract(x, ...operands));
+  },
+  multiply: function multiply() {
+    for (var _len8 = arguments.length, operands = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+      operands[_key8] = arguments[_key8];
+    }
+
+    return calc(_multiply(x, ...operands));
+  },
+  divide: function divide() {
+    for (var _len9 = arguments.length, operands = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+      operands[_key9] = arguments[_key9];
+    }
+
+    return calc(_divide(x, ...operands));
+  },
+  negate: () => calc(_negate(x)),
+  toString: () => x.toString()
+}), {
+  add: _add,
+  subtract: _subtract,
+  multiply: _multiply,
+  divide: _divide,
+  negate: _negate
+});
+
+function replaceWhiteSpace(value, replaceValue) {
+  if (replaceValue === void 0) {
+    replaceValue = "-";
+  }
+
+  return value.replace(/\s+/g, replaceValue);
+}
+
+function escape(value) {
+  var valueStr = replaceWhiteSpace(value.toString());
+  if (valueStr.includes("\\.")) return value;
+  var isDecimal = !Number.isInteger(parseFloat(value.toString()));
+  return isDecimal ? valueStr.replace(".", "\\.") : value;
+}
+
+function addPrefix(value, prefix) {
+  if (prefix === void 0) {
+    prefix = "";
+  }
+
+  return [prefix, escape(value)].filter(Boolean).join("-");
+}
+function toVarReference(name, fallback) {
+  return "var(" + escape(name) + (fallback ? ", " + fallback : "") + ")";
+}
+function toVarDefinition(value, prefix) {
+  if (prefix === void 0) {
+    prefix = "";
+  }
+
+  return "--" + addPrefix(value, prefix);
+}
+function cssVar(name, fallback, cssVarPrefix) {
+  var cssVariable = toVarDefinition(name, cssVarPrefix);
+  return {
+    variable: cssVariable,
+    reference: toVarReference(cssVariable, fallback)
+  };
+}
+
+function _extends$4() { _extends$4 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$4.apply(this, arguments); }
+function createThemeVars(target, options) {
+  var context = {
+    cssMap: {},
+    cssVars: {}
+  };
+  walkObject(target, (value, path) => {
+    var _tokenHandlerMap$firs;
+
+    // firstKey will be e.g. "space"
+    var [firstKey] = path;
+    var handler = (_tokenHandlerMap$firs = tokenHandlerMap[firstKey]) != null ? _tokenHandlerMap$firs : tokenHandlerMap.defaultHandler;
+    var {
+      cssVars,
+      cssMap
+    } = handler(path, value, options);
+    Object.assign(context.cssVars, cssVars);
+    Object.assign(context.cssMap, cssMap);
+  });
+  return context;
+}
+
+/**
+ * Define transformation handlers for ThemeScale
+ */
+var tokenHandlerMap = {
+  space: (keys, value, options) => {
+    var properties = tokenHandlerMap.defaultHandler(keys, value, options);
+    var [firstKey, ...referenceKeys] = keys;
+    var negativeLookupKey = firstKey + ".-" + referenceKeys.join(".");
+    var negativeVarKey = keys.join("-");
+    var {
+      variable,
+      reference
+    } = cssVar(negativeVarKey, undefined, options.cssVarPrefix);
+    var negativeValue = calc.negate(value);
+    var varRef = calc.negate(reference);
+    return {
+      cssVars: properties.cssVars,
+      cssMap: _extends$4({}, properties.cssMap, {
+        [negativeLookupKey]: {
+          value: "" + negativeValue,
+          var: "" + variable,
+          varRef
+        }
+      })
+    };
+  },
+  defaultHandler: (keys, value, options) => {
+    var lookupKey = keys.join(".");
+    var varKey = keys.join("-");
+    var {
+      variable,
+      reference
+    } = cssVar(varKey, undefined, options.cssVarPrefix);
+    return {
+      cssVars: {
+        [variable]: value
+      },
+      cssMap: {
+        [lookupKey]: {
+          value,
+          var: variable,
+          varRef: reference
+        }
+      }
+    };
+  }
+};
+
+function _objectWithoutPropertiesLoose$2(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+var tokens = ["colors", "borders", "borderWidths", "borderStyles", "fonts", "fontSizes", "fontWeights", "letterSpacings", "lineHeights", "radii", "space", "shadows", "sizes", "zIndices", "transition", "blur"];
+function extractTokens(theme) {
+  var _tokens = tokens;
+  return pick(theme, _tokens);
+}
+function omitVars(rawTheme) {
+  var cleanTheme = _objectWithoutPropertiesLoose$2(rawTheme, ["__cssMap", "__cssVars", "__breakpoints"]);
+
+  return cleanTheme;
+}
+
+function _extends$5() { _extends$5 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$5.apply(this, arguments); }
+function toCSSVar(rawTheme) {
+  var _theme$config;
+
+  /**
+   * In the case the theme has already been converted to css-var (e.g extending the theme),
+   * we can omit the computed css vars and recompute it for the extended theme.
+   */
+  var theme = omitVars(rawTheme); // omit components and breakpoints from css variable map
+
+  var tokens = extractTokens(theme);
+  var cssVarPrefix = (_theme$config = theme.config) == null ? void 0 : _theme$config.cssVarPrefix;
+  var {
+    /**
+     * This is more like a dictionary of tokens users will type `green.500`,
+     * and their equivalent css variable.
+     */
+    cssMap,
+
+    /**
+     * The extracted css variables will be stored here, and used in
+     * the emotion's <Global/> component to attach variables to `:root`
+     */
+    cssVars
+  } = createThemeVars(tokens, {
+    cssVarPrefix
+  });
+  var defaultCssVars = {
+    "--chakra-ring-inset": "var(--chakra-empty,/*!*/ /*!*/)",
+    "--chakra-ring-offset-width": "0px",
+    "--chakra-ring-offset-color": "#fff",
+    "--chakra-ring-color": "rgba(66, 153, 225, 0.6)",
+    "--chakra-ring-offset-shadow": "0 0 #0000",
+    "--chakra-ring-shadow": "0 0 #0000",
+    "--chakra-space-x-reverse": "0",
+    "--chakra-space-y-reverse": "0"
+  };
+  Object.assign(theme, {
+    __cssVars: _extends$5({}, defaultCssVars, cssVars),
+    __cssMap: cssMap,
+    __breakpoints: analyzeBreakpoints(theme.breakpoints)
+  });
+  return theme;
+}
+
+var ThemeProvider = props => {
+  var {
+    cssVarsRoot = ":host, :root",
+    theme,
+    children
+  } = props;
+  var computedTheme = react.useMemo(() => toCSSVar(theme), [theme]);
+  return /*#__PURE__*/react.createElement(ThemeProvider$1, {
+    theme: computedTheme
+  }, /*#__PURE__*/react.createElement(Global, {
+    styles: theme => ({
+      [cssVarsRoot]: theme.__cssVars
+    })
+  }), children);
+};
+var [StylesProvider, useStyles] = createContext({
+  name: "StylesContext",
+  errorMessage: "useStyles: `styles` is undefined. Seems you forgot to wrap the components in `<StylesProvider />` "
+});
+/**
+ * Applies styles defined in `theme.styles.global` globally
+ * using emotion's `Global` component
+ */
+
+var GlobalStyle = () => {
+  var {
+    colorMode
+  } = useColorMode();
+  return /*#__PURE__*/react.createElement(Global, {
+    styles: theme => {
+      var styleObjectOrFn = memoizedGet(theme, "styles.global");
+      var globalStyles = runIfFn(styleObjectOrFn, {
+        theme,
+        colorMode
+      });
+      if (!globalStyles) return undefined;
+      var styles = css$1(globalStyles)(theme);
+      return styles;
+    }
+  });
+};
 
 var parts = ["container", "button", "panel", "icon"];
 var baseStyleContainer = {
@@ -3328,13 +4820,13 @@ function orient(options) {
   return orientation === "vertical" ? vertical : horizontal;
 }
 
-function _extends$5() { _extends$5 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$5.apply(this, arguments); }
+function _extends$6() { _extends$6 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$6.apply(this, arguments); }
 var createBreakpoints = config => {
   warn({
     condition: true,
     message: ["[chakra-ui]: createBreakpoints(...) will be deprecated pretty soon", "simply pass the breakpoints as an object. Remove the createBreakpoint(..) call"].join("")
   });
-  return _extends$5({
+  return _extends$6({
     base: "0em"
   }, config);
 };
@@ -3488,7 +4980,7 @@ var spacing = {
  * Spacing tokens are a part of DefaultChakraTheme['sizes']
  */
 
-function _extends$6() { _extends$6 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$6.apply(this, arguments); }
+function _extends$7() { _extends$7 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$7.apply(this, arguments); }
 var largeSizes = {
   max: "max-content",
   min: "min-content",
@@ -3515,7 +5007,7 @@ var container = {
   xl: "1280px"
 };
 
-var sizes = _extends$6({}, spacing, largeSizes, {
+var sizes = _extends$7({}, spacing, largeSizes, {
   container
 });
 
@@ -3686,7 +5178,7 @@ var Breadcrumb = {
   baseStyle: baseStyle$4
 };
 
-function _extends$7() { _extends$7 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$7.apply(this, arguments); }
+function _extends$8() { _extends$8 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$8.apply(this, arguments); }
 var baseStyle$5 = {
   lineHeight: "1.2",
   borderRadius: "md",
@@ -3745,7 +5237,7 @@ function variantOutline$1(props) {
     colorScheme: c
   } = props;
   var borderColor = mode("gray.200", "whiteAlpha.300")(props);
-  return _extends$7({
+  return _extends$8({
     border: "1px solid",
     borderColor: c === "gray" ? borderColor : "currentColor"
   }, variantGhost(props));
@@ -4217,7 +5709,7 @@ var Modal = {
   defaultProps: defaultProps$8
 };
 
-function _extends$8() { _extends$8 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$8.apply(this, arguments); }
+function _extends$9() { _extends$9 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$9.apply(this, arguments); }
 var parts$6 = Modal.parts;
 /**
  * Since the `maxWidth` prop references theme.sizes internally,
@@ -4255,7 +5747,7 @@ function baseStyleDialog$1(props) {
   var {
     isFullHeight
   } = props;
-  return _extends$8({}, isFullHeight && {
+  return _extends$9({}, isFullHeight && {
     height: "100vh"
   }, {
     zIndex: "modal",
@@ -4786,7 +6278,7 @@ var Menu = {
   baseStyle: baseStyle$l
 };
 
-var typography = {
+var typography$1 = {
   letterSpacings: {
     tighter: "-0.05em",
     tight: "-0.025em",
@@ -4847,7 +6339,7 @@ var typography = {
 
 var _Input$baseStyle;
 
-function _extends$9() { _extends$9 = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$9.apply(this, arguments); }
+function _extends$a() { _extends$a = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$a.apply(this, arguments); }
 var parts$c = ["root", "field", "stepper", "stepperGroup"];
 var {
   variants: variants$6,
@@ -4892,9 +6384,9 @@ function getSize$3(size) {
     sm: "sm",
     xs: "sm"
   };
-  var resolvedFontSize = typography.fontSizes[sizeStyle.field.fontSize];
+  var resolvedFontSize = typography$1.fontSizes[sizeStyle.field.fontSize];
   return {
-    field: _extends$9({}, sizeStyle.field, {
+    field: _extends$a({}, sizeStyle.field, {
       paddingInlineEnd: "var(--number-input-field-padding)",
       verticalAlign: "top"
     }),
@@ -4926,9 +6418,9 @@ var NumberInput = {
   defaultProps: defaultProps$c
 };
 
-function _extends$a() { _extends$a = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$a.apply(this, arguments); }
+function _extends$b() { _extends$b = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$b.apply(this, arguments); }
 
-var baseStyle$n = _extends$a({}, Input.baseStyle.field, {
+var baseStyle$n = _extends$b({}, Input.baseStyle.field, {
   textAlign: "center"
 });
 
@@ -5027,7 +6519,7 @@ var Popover = {
   baseStyle: baseStyle$o
 };
 
-function _extends$b() { _extends$b = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$b.apply(this, arguments); }
+function _extends$c() { _extends$c = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$c.apply(this, arguments); }
 var parts$e = ["track", "filledTrack", "label"];
 
 function filledStyle(props) {
@@ -5041,7 +6533,7 @@ function filledStyle(props) {
   var bgColor = mode(c + ".500", c + ".200")(props);
   var gradient = "linear-gradient(\n    to right,\n    transparent 0%,\n    " + getColor(t, bgColor) + " 50%,\n    transparent 100%\n  )";
   var addStripe = !isIndeterminate && hasStripe;
-  return _extends$b({}, addStripe && stripeStyle, isIndeterminate ? {
+  return _extends$c({}, addStripe && stripeStyle, isIndeterminate ? {
     bgImage: gradient
   } : {
     bgColor
@@ -5062,7 +6554,7 @@ function baseStyleTrack(props) {
 }
 
 function baseStyleFilledTrack(props) {
-  return _extends$b({
+  return _extends$c({
     transitionProperty: "common",
     transitionDuration: "slow"
   }, filledStyle(props));
@@ -5107,16 +6599,16 @@ var Progress = {
   defaultProps: defaultProps$e
 };
 
-function _extends$c() { _extends$c = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$c.apply(this, arguments); }
+function _extends$d() { _extends$d = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$d.apply(this, arguments); }
 var parts$f = ["container", "control", "label"];
 
 function baseStyleControl$1(props) {
   var {
     control
   } = Checkbox.baseStyle(props);
-  return _extends$c({}, control, {
+  return _extends$d({}, control, {
     borderRadius: "full",
-    _checked: _extends$c({}, control["_checked"], {
+    _checked: _extends$d({}, control["_checked"], {
       _before: {
         content: "\"\"",
         display: "inline-block",
@@ -5175,11 +6667,11 @@ var Radio = {
   defaultProps: defaultProps$f
 };
 
-function _extends$d() { _extends$d = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$d.apply(this, arguments); }
+function _extends$e() { _extends$e = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$e.apply(this, arguments); }
 var parts$g = ["field", "icon"];
 
 function baseStyleField$1(props) {
-  return _extends$d({}, Input.baseStyle.field, {
+  return _extends$e({}, Input.baseStyle.field, {
     appearance: "none",
     paddingBottom: "1px",
     lineHeight: "normal",
@@ -5273,7 +6765,7 @@ var SkipLink = {
   baseStyle: baseStyle$t
 };
 
-function _extends$e() { _extends$e = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$e.apply(this, arguments); }
+function _extends$f() { _extends$f = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$f.apply(this, arguments); }
 var parts$h = ["container", "thumb", "track", "filledTrack"];
 
 function thumbOrientation(props) {
@@ -5300,7 +6792,7 @@ var baseStyleContainer$3 = props => {
   var {
     orientation
   } = props;
-  return _extends$e({
+  return _extends$f({
     _disabled: {
       opacity: 0.6,
       cursor: "default",
@@ -5328,7 +6820,7 @@ function baseStyleTrack$1(props) {
 }
 
 function baseStyleThumb(props) {
-  return _extends$e({
+  return _extends$f({
     zIndex: 1,
     borderRadius: "full",
     bg: "white",
@@ -5593,7 +7085,7 @@ var Switch = {
   defaultProps: defaultProps$j
 };
 
-function _extends$f() { _extends$f = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$f.apply(this, arguments); }
+function _extends$g() { _extends$g = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$g.apply(this, arguments); }
 var parts$k = ["table", "thead", "tbody", "tr", "th", "td", "caption"];
 var baseStyle$y = {
   table: {
@@ -5629,12 +7121,12 @@ var simpleVariant = props => {
     colorScheme: c
   } = props;
   return {
-    th: _extends$f({
+    th: _extends$g({
       color: mode("gray.600", "gray.400")(props),
       borderBottom: "1px",
       borderColor: mode(c + ".100", c + ".700")(props)
     }, numericStyles),
-    td: _extends$f({
+    td: _extends$g({
       borderBottom: "1px",
       borderColor: mode(c + ".100", c + ".700")(props)
     }, numericStyles),
@@ -5658,12 +7150,12 @@ var stripedVariant = props => {
     colorScheme: c
   } = props;
   return {
-    th: _extends$f({
+    th: _extends$g({
       color: mode("gray.600", "gray.400")(props),
       borderBottom: "1px",
       borderColor: mode(c + ".100", c + ".700")(props)
     }, numericStyles),
-    td: _extends$f({
+    td: _extends$g({
       borderBottom: "1px",
       borderColor: mode(c + ".100", c + ".700")(props)
     }, numericStyles),
@@ -6087,9 +7579,9 @@ var Tag = {
   defaultProps: defaultProps$m
 };
 
-function _extends$g() { _extends$g = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$g.apply(this, arguments); }
+function _extends$h() { _extends$h = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$h.apply(this, arguments); }
 
-var baseStyle$B = _extends$g({}, Input.baseStyle.field, {
+var baseStyle$B = _extends$h({}, Input.baseStyle.field, {
   paddingY: "8px",
   minHeight: "80px",
   lineHeight: "short",
@@ -6507,7 +7999,7 @@ var transitionDuration = {
   slower: "400ms",
   "ultra-slow": "500ms"
 };
-var transition = {
+var transition$1 = {
   property: transitionProperty,
   easing: transitionTimingFunction,
   duration: transitionDuration
@@ -6540,20 +8032,20 @@ var blur = {
   "3xl": "64px"
 };
 
-function _extends$h() { _extends$h = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$h.apply(this, arguments); }
+function _extends$i() { _extends$i = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$i.apply(this, arguments); }
 
-var foundations = _extends$h({
+var foundations = _extends$i({
   breakpoints: breakpoints$1,
   zIndices,
   radii,
   blur,
   colors
-}, typography, {
+}, typography$1, {
   sizes,
   shadows,
   space: spacing,
   borders,
-  transition
+  transition: transition$1
 });
 
 var styles = {
@@ -6585,14 +8077,14 @@ function isChakraTheme(unit) {
   return requiredChakraThemeKeys.every(propertyName => Object.prototype.hasOwnProperty.call(unit, propertyName));
 }
 
-function _extends$i() { _extends$i = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$i.apply(this, arguments); }
+function _extends$j() { _extends$j = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$j.apply(this, arguments); }
 var direction = "ltr";
 var config = {
   useSystemColorMode: false,
   initialColorMode: "light",
   cssVarPrefix: "chakra"
 };
-var theme = _extends$i({
+var theme = _extends$j({
   direction
 }, foundations, {
   components,
@@ -6657,7 +8149,7 @@ var doc = {
 };
 var ssrDocument = doc;
 
-var noop = () => {};
+var noop$1 = () => {};
 
 var win = {
   document: ssrDocument,
@@ -6667,8 +8159,8 @@ var win = {
   CustomEvent: function CustomEvent() {
     return this;
   },
-  addEventListener: noop,
-  removeEventListener: noop,
+  addEventListener: noop$1,
+  removeEventListener: noop$1,
 
   getComputedStyle() {
     return {
@@ -6682,8 +8174,8 @@ var win = {
   matchMedia() {
     return {
       matches: false,
-      addListener: noop,
-      removeListener: noop
+      addListener: noop$1,
+      removeListener: noop$1
     };
   },
 
@@ -6702,9 +8194,9 @@ var win = {
   },
 
   setTimeout: () => 0,
-  clearTimeout: noop,
+  clearTimeout: noop$1,
   setInterval: () => 0,
-  clearInterval: noop
+  clearInterval: noop$1
 };
 var ssrWindow = win;
 
@@ -6810,7 +8302,7 @@ function extendTheme() {
     baseTheme = theme;
   }
 
-  return pipe$1(...overrides.map(extension => prevTheme => isFunction(extension) ? extension(prevTheme) : mergeThemeOverride(prevTheme, extension)))(baseTheme);
+  return pipe(...overrides.map(extension => prevTheme => isFunction(extension) ? extension(prevTheme) : mergeThemeOverride(prevTheme, extension)))(baseTheme);
 }
 function mergeThemeOverride() {
   for (var _len2 = arguments.length, overrides = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
@@ -7547,7 +9039,7 @@ var sanitize = function (v) { return (v % 1 ? Number(v.toFixed(5)) : v); };
 var floatRegex = /(-)?([\d]*\.?[\d])+/g;
 var colorRegex = /(#[0-9a-f]{6}|#[0-9a-f]{3}|#(?:[0-9a-f]{2}){2,4}|(rgb|hsl)a?\((-?[\d\.]+%?[,\s]+){2,3}\s*\/*\s*[\d\.]+%?\))/gi;
 var singleColorRegex = /^(#[0-9a-f]{3}|#(?:[0-9a-f]{2}){2,4}|(rgb|hsl)a?\((-?[\d\.]+%?[,\s]+){2,3}\s*\/*\s*[\d\.]+%?\))$/i;
-function isString(v) {
+function isString$1(v) {
     return typeof v === 'string';
 }
 
@@ -7561,7 +9053,7 @@ var scale = __assign(__assign({}, number), { default: 1 });
 
 var createUnitType = function (unit) { return ({
     test: function (v) {
-        return isString(v) && v.endsWith(unit) && v.split(' ').length === 1;
+        return isString$1(v) && v.endsWith(unit) && v.split(' ').length === 1;
     },
     parse: parseFloat,
     transform: function (v) { return "" + v + unit; },
@@ -7574,12 +9066,12 @@ var vw = createUnitType('vw');
 var progressPercentage = __assign(__assign({}, percent), { parse: function (v) { return percent.parse(v) / 100; }, transform: function (v) { return percent.transform(v * 100); } });
 
 var isColorString = function (type, testProp) { return function (v) {
-    return Boolean((isString(v) && singleColorRegex.test(v) && v.startsWith(type)) ||
+    return Boolean((isString$1(v) && singleColorRegex.test(v) && v.startsWith(type)) ||
         (testProp && Object.prototype.hasOwnProperty.call(v, testProp)));
 }; };
 var splitColor = function (aName, bName, cName) { return function (v) {
     var _a;
-    if (!isString(v))
+    if (!isString$1(v))
         return v;
     var _b = v.match(floatRegex), a = _b[0], b = _b[1], c = _b[2], alpha = _b[3];
     return _a = {},
@@ -7660,7 +9152,7 @@ var hex = {
     transform: rgba.transform,
 };
 
-var color = {
+var color$1 = {
     test: function (v) { return rgba.test(v) || hex.test(v) || hsla.test(v); },
     parse: function (v) {
         if (rgba.test(v)) {
@@ -7674,7 +9166,7 @@ var color = {
         }
     },
     transform: function (v) {
-        return isString(v)
+        return isString$1(v)
             ? v
             : v.hasOwnProperty('red')
                 ? rgba.transform(v)
@@ -7687,7 +9179,7 @@ var numberToken = '${n}';
 function test(v) {
     var _a, _b, _c, _d;
     return (isNaN(v) &&
-        isString(v) &&
+        isString$1(v) &&
         ((_b = (_a = v.match(floatRegex)) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = v.match(colorRegex)) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0) > 0);
 }
 function analyse(v) {
@@ -7697,7 +9189,7 @@ function analyse(v) {
     if (colors) {
         numColors = colors.length;
         v = v.replace(colorRegex, colorToken);
-        values.push.apply(values, colors.map(color.parse));
+        values.push.apply(values, colors.map(color$1.parse));
     }
     var numbers = v.match(floatRegex);
     if (numbers) {
@@ -7715,7 +9207,7 @@ function createTransformer(v) {
     return function (v) {
         var output = tokenised;
         for (var i = 0; i < numValues; i++) {
-            output = output.replace(i < numColors ? colorToken : numberToken, i < numColors ? color.transform(v[i]) : sanitize(v[i]));
+            output = output.replace(i < numColors ? colorToken : numberToken, i < numColors ? color$1.transform(v[i]) : sanitize(v[i]));
         }
         return output;
     };
@@ -7745,7 +9237,7 @@ function applyDefaultFilter(v) {
     return name + '(' + defaultValue + unit + ')';
 }
 var functionRegex = /([a-z-]*)\(.*?\)/g;
-var filter = __assign(__assign({}, complex), { getAnimatableNone: function (v) {
+var filter$1 = __assign(__assign({}, complex), { getAnimatableNone: function (v) {
         var functions = v.match(functionRegex);
         return functions ? functions.map(applyDefaultFilter).join(' ') : v;
     } });
@@ -8913,7 +10405,7 @@ var mixColor = function (from, to) {
 var isNum = function (v) { return typeof v === 'number'; };
 
 var combineFunctions = function (a, b) { return function (v) { return b(a(v)); }; };
-var pipe = function () {
+var pipe$1 = function () {
     var transformers = [];
     for (var _i = 0; _i < arguments.length; _i++) {
         transformers[_i] = arguments[_i];
@@ -8925,7 +10417,7 @@ function getMixer(origin, target) {
     if (isNum(origin)) {
         return function (v) { return mix(origin, target, v); };
     }
-    else if (color.test(origin)) {
+    else if (color$1.test(origin)) {
         return mixColor(origin, target);
     }
     else {
@@ -8983,7 +10475,7 @@ var mixComplex = function (origin, target) {
     var template = complex.createTransformer(target);
     var originStats = analyse$1(origin);
     var targetStats = analyse$1(target);
-    return pipe(mixArray(originStats.parsed, targetStats.parsed), template);
+    return pipe$1(mixArray(originStats.parsed, targetStats.parsed), template);
 };
 
 var mixNumber = function (from, to) { return function (p) { return mix(from, to, p); }; };
@@ -8992,7 +10484,7 @@ function detectMixerFactory(v) {
         return mixNumber;
     }
     else if (typeof v === 'string') {
-        if (color.test(v)) {
+        if (color$1.test(v)) {
             return mixColor;
         }
         else {
@@ -9014,7 +10506,7 @@ function createMixers(output, ease, customMixer) {
         var mixer = mixerFactory(output[i], output[i + 1]);
         if (ease) {
             var easingFunction = Array.isArray(ease) ? ease[i] : ease;
-            mixer = pipe(easingFunction, mixer);
+            mixer = pipe$1(easingFunction, mixer);
         }
         mixers.push(mixer);
     }
@@ -9511,7 +11003,7 @@ function useTapGesture(_a) {
         if (isPressing.current)
             return;
         isPressing.current = true;
-        cancelPointerEndListeners.current = pipe(addPointerEvent(window, "pointerup", onPointerUp), addPointerEvent(window, "pointercancel", onPointerCancel));
+        cancelPointerEndListeners.current = pipe$1(addPointerEvent(window, "pointerup", onPointerUp), addPointerEvent(window, "pointercancel", onPointerCancel));
         onTapStart === null || onTapStart === void 0 ? void 0 : onTapStart(event, info);
         (_a = visualElement.animationState) === null || _a === void 0 ? void 0 : _a.setActive(AnimationType.Tap, true);
     }
@@ -9667,9 +11159,9 @@ var getDefaultTransition = function (valueKey, to) {
  */
 var defaultValueTypes = __assign(__assign({}, numberValueTypes), { 
     // Color props
-    color: color, backgroundColor: color, outlineColor: color, fill: color, stroke: color, 
+    color: color$1, backgroundColor: color$1, outlineColor: color$1, fill: color$1, stroke: color$1, 
     // Border props
-    borderColor: color, borderTopColor: color, borderRightColor: color, borderBottomColor: color, borderLeftColor: color, filter: filter, WebkitFilter: filter });
+    borderColor: color$1, borderTopColor: color$1, borderRightColor: color$1, borderBottomColor: color$1, borderLeftColor: color$1, filter: filter$1, WebkitFilter: filter$1 });
 /**
  * Gets the default ValueType for the provided value key
  */
@@ -9678,7 +11170,7 @@ var getDefaultValueType = function (key) { return defaultValueTypes[key]; };
 function getAnimatableNone$1(key, value) {
     var _a;
     var defaultValueType = getDefaultValueType(key);
-    if (defaultValueType !== filter)
+    if (defaultValueType !== filter$1)
         defaultValueType = complex;
     // If value is not recognised as animatable, ie "none", create an animatable version origin based on the target
     return (_a = defaultValueType.getAnimatableNone) === null || _a === void 0 ? void 0 : _a.call(defaultValueType, value);
@@ -10286,7 +11778,7 @@ var findDimensionValueType = function (v) {
 /**
  * A list of all ValueTypes
  */
-var valueTypes = __spreadArray(__spreadArray([], __read(dimensionValueTypes)), [color, complex]);
+var valueTypes = __spreadArray(__spreadArray([], __read(dimensionValueTypes)), [color$1, complex]);
 /**
  * Tests a value against the list of ValueTypes
  */
@@ -10938,7 +12430,7 @@ var PanSession = /** @class */ (function () {
         var onSessionStart = handlers.onSessionStart;
         onSessionStart &&
             onSessionStart(event, getPanInfo(initialInfo, this.history));
-        this.removeListeners = pipe(addPointerEvent(window, "pointermove", this.handlePointerMove), addPointerEvent(window, "pointerup", this.handlePointerUp), addPointerEvent(window, "pointercancel", this.handlePointerUp));
+        this.removeListeners = pipe$1(addPointerEvent(window, "pointermove", this.handlePointerMove), addPointerEvent(window, "pointerup", this.handlePointerUp), addPointerEvent(window, "pointercancel", this.handlePointerUp));
     }
     PanSession.prototype.updateHandlers = function (handlers) {
         this.handlers = handlers;
@@ -11005,7 +12497,7 @@ function getVelocity$1(history, timeDelta) {
     return currentVelocity;
 }
 
-function noop$1(any) {
+function noop$2(any) {
     return any;
 }
 
@@ -11037,7 +12529,7 @@ function convertAxisBoxToBoundingBox(_a) {
  */
 function transformBoundingBox(_a, transformPoint) {
     var top = _a.top, left = _a.left, bottom = _a.bottom, right = _a.right;
-    if (transformPoint === void 0) { transformPoint = noop$1; }
+    if (transformPoint === void 0) { transformPoint = noop$2; }
     var topLeft = transformPoint({ x: left, y: top });
     var bottomRight = transformPoint({ x: right, y: bottom });
     return {
@@ -13658,7 +15150,7 @@ var visualElement = function (_a) {
                  * Subscribe to lead component's layout animations
                  */
                 unsubscribeFromLeadVisualElement === null || unsubscribeFromLeadVisualElement === void 0 ? void 0 : unsubscribeFromLeadVisualElement();
-                unsubscribeFromLeadVisualElement = pipe(newLead.onSetAxisTarget(element.scheduleUpdateLayoutProjection), newLead.onLayoutAnimationComplete(function () {
+                unsubscribeFromLeadVisualElement = pipe$1(newLead.onSetAxisTarget(element.scheduleUpdateLayoutProjection), newLead.onLayoutAnimationComplete(function () {
                     var _a;
                     if (element.isPresent) {
                         element.presence = Presence.Present;
@@ -14291,7 +15783,7 @@ var AnimatePresence = function (_a) {
         : childrenToRender.map(function (child) { return react.cloneElement(child); })));
 };
 
-function _extends$j() { _extends$j = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$j.apply(this, arguments); }
+function _extends$k() { _extends$k = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$k.apply(this, arguments); }
 var TransitionEasings = {
   ease: [0.25, 0.1, 0.25, 1],
   easeIn: [0.4, 0, 1, 1],
@@ -14309,10 +15801,10 @@ var TransitionDefaults = {
   }
 };
 var withDelay = {
-  enter: (transition, delay) => _extends$j({}, transition, {
+  enter: (transition, delay) => _extends$k({}, transition, {
     delay: isNumber(delay) ? delay : delay == null ? void 0 : delay["enter"]
   }),
-  exit: (transition, delay) => _extends$j({}, transition, {
+  exit: (transition, delay) => _extends$k({}, transition, {
     delay: isNumber(delay) ? delay : delay == null ? void 0 : delay["exit"]
   })
 };
@@ -14354,7 +15846,7 @@ var fadeConfig = {
   variants: variants$c
 };
 
-function _extends$k() { _extends$k = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$k.apply(this, arguments); }
+function _extends$l() { _extends$l = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$l.apply(this, arguments); }
 var variants$d = {
   exit: (_ref) => {
     var _transition$exit;
@@ -14366,13 +15858,13 @@ var variants$d = {
       transitionEnd,
       delay
     } = _ref;
-    return _extends$k({
+    return _extends$l({
       opacity: 0
     }, reverse ? {
       scale: initialScale,
       transitionEnd: transitionEnd == null ? void 0 : transitionEnd.exit
     } : {
-      transitionEnd: _extends$k({
+      transitionEnd: _extends$l({
         scale: initialScale
       }, transitionEnd == null ? void 0 : transitionEnd.exit)
     }, {
@@ -14402,7 +15894,7 @@ var scaleFadeConfig = {
   variants: variants$d
 };
 
-function _extends$l() { _extends$l = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$l.apply(this, arguments); }
+function _extends$m() { _extends$m = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$m.apply(this, arguments); }
 var variants$e = {
   initial: (_ref) => {
     var _transition$exit;
@@ -14453,13 +15945,13 @@ var variants$e = {
       x: offsetX,
       y: offsetY
     };
-    return _extends$l({
+    return _extends$m({
       opacity: 0,
       transition: (_transition$exit2 = transition == null ? void 0 : transition.exit) != null ? _transition$exit2 : withDelay.exit(TransitionDefaults.exit, delay)
-    }, reverse ? _extends$l({}, offset, {
+    }, reverse ? _extends$m({}, offset, {
       transitionEnd: transitionEnd == null ? void 0 : transitionEnd.exit
     }) : {
-      transitionEnd: _extends$l({}, offset, transitionEnd == null ? void 0 : transitionEnd.exit)
+      transitionEnd: _extends$m({}, offset, transitionEnd == null ? void 0 : transitionEnd.exit)
     });
   }
 };
@@ -14509,9 +16001,9 @@ var VisuallyHiddenInput = chakra("input", {
   baseStyle: visuallyHiddenStyle
 });
 
-function _extends$m() { _extends$m = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$m.apply(this, arguments); }
+function _extends$n() { _extends$n = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$n.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$4(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$3(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var spin = keyframes({
   "0%": {
     transform: "rotate(0deg)"
@@ -14538,11 +16030,11 @@ var Spinner$1 = /*#__PURE__*/forwardRef((props, ref) => {
     emptyColor = "transparent",
     className
   } = _omitThemingProps,
-      rest = _objectWithoutPropertiesLoose$4(_omitThemingProps, ["label", "thickness", "speed", "emptyColor", "className"]);
+      rest = _objectWithoutPropertiesLoose$3(_omitThemingProps, ["label", "thickness", "speed", "emptyColor", "className"]);
 
   var _className = cx("chakra-spinner", className);
 
-  var spinnerStyles = _extends$m({
+  var spinnerStyles = _extends$n({
     display: "inline-block",
     borderColor: "currentColor",
     borderStyle: "solid",
@@ -14553,16 +16045,16 @@ var Spinner$1 = /*#__PURE__*/forwardRef((props, ref) => {
     animation: spin + " " + speed + " linear infinite"
   }, styles);
 
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$m({
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$n({
     ref: ref,
     __css: spinnerStyles,
     className: _className
   }, rest), label && /*#__PURE__*/react.createElement(VisuallyHidden, null, label));
 });
 
-function _extends$n() { _extends$n = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$n.apply(this, arguments); }
+function _extends$o() { _extends$o = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$o.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$5(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$4(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var ButtonSpinner = props => {
   var {
     label,
@@ -14575,12 +16067,12 @@ var ButtonSpinner = props => {
     className,
     __css
   } = props,
-      rest = _objectWithoutPropertiesLoose$5(props, ["label", "placement", "spacing", "children", "className", "__css"]);
+      rest = _objectWithoutPropertiesLoose$4(props, ["label", "placement", "spacing", "children", "className", "__css"]);
 
   var _className = cx("chakra-button__spinner", className);
 
   var marginProp = placement === "start" ? "marginEnd" : "marginStart";
-  var spinnerStyles = react.useMemo(() => _extends$n({
+  var spinnerStyles = react.useMemo(() => _extends$o({
     display: "flex",
     alignItems: "center",
     position: label ? "relative" : "absolute",
@@ -14588,22 +16080,22 @@ var ButtonSpinner = props => {
     fontSize: "1em",
     lineHeight: "normal"
   }, __css), [__css, label, marginProp]);
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$n({
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$o({
     className: _className
   }, rest, {
     __css: spinnerStyles
   }), children);
 };
 
-function _extends$o() { _extends$o = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$o.apply(this, arguments); }
+function _extends$p() { _extends$p = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$p.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$6(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$5(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var ButtonIcon = props => {
   var {
     children,
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$6(props, ["children", "className"]);
+      rest = _objectWithoutPropertiesLoose$5(props, ["children", "className"]);
 
   var _children = /*#__PURE__*/react.isValidElement(children) ? /*#__PURE__*/react.cloneElement(children, {
     "aria-hidden": true,
@@ -14612,7 +16104,7 @@ var ButtonIcon = props => {
 
   var _className = cx("chakra-button__icon", className);
 
-  return /*#__PURE__*/react.createElement(chakra.span, _extends$o({
+  return /*#__PURE__*/react.createElement(chakra.span, _extends$p({
     display: "inline-flex",
     alignSelf: "center",
     flexShrink: 0
@@ -14634,12 +16126,12 @@ function useButtonType(value) {
   };
 }
 
-function _objectWithoutPropertiesLoose$7(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$6(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$p() { _extends$p = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$p.apply(this, arguments); }
+function _extends$q() { _extends$q = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$q.apply(this, arguments); }
 var Button$1 = /*#__PURE__*/forwardRef((props, ref) => {
   var group = useButtonGroup();
-  var styles = useStyleConfig("Button", _extends$p({}, group, props));
+  var styles = useStyleConfig("Button", _extends$q({}, group, props));
 
   var _omitThemingProps = omitThemingProps(props),
       {
@@ -14658,7 +16150,7 @@ var Button$1 = /*#__PURE__*/forwardRef((props, ref) => {
     className,
     as
   } = _omitThemingProps,
-      rest = _objectWithoutPropertiesLoose$7(_omitThemingProps, ["isDisabled", "isLoading", "isActive", "isFullWidth", "children", "leftIcon", "rightIcon", "loadingText", "iconSpacing", "type", "spinner", "spinnerPlacement", "className", "as"]);
+      rest = _objectWithoutPropertiesLoose$6(_omitThemingProps, ["isDisabled", "isLoading", "isActive", "isFullWidth", "children", "leftIcon", "rightIcon", "loadingText", "iconSpacing", "type", "spinner", "spinnerPlacement", "className", "as"]);
   /**
    * When button is used within ButtonGroup (i.e flushed with sibling buttons),
    * it is important to add a `zIndex` on focus.
@@ -14674,7 +16166,7 @@ var Button$1 = /*#__PURE__*/forwardRef((props, ref) => {
       zIndex: 1
     });
 
-    return _extends$p({
+    return _extends$q({
       display: "inline-flex",
       appearance: "none",
       alignItems: "center",
@@ -14699,7 +16191,7 @@ var Button$1 = /*#__PURE__*/forwardRef((props, ref) => {
     iconSpacing,
     children
   };
-  return /*#__PURE__*/react.createElement(chakra.button, _extends$p({
+  return /*#__PURE__*/react.createElement(chakra.button, _extends$q({
     disabled: isDisabled || isLoading,
     ref: mergeRefs(ref, _ref),
     as: as,
@@ -14735,9 +16227,9 @@ function ButtonContent(props) {
   }, rightIcon));
 }
 
-function _extends$q() { _extends$q = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$q.apply(this, arguments); }
+function _extends$r() { _extends$r = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$r.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$8(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$7(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var IconButton = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     icon,
@@ -14745,7 +16237,7 @@ var IconButton = /*#__PURE__*/forwardRef((props, ref) => {
     isRound,
     "aria-label": ariaLabel
   } = props,
-      rest = _objectWithoutPropertiesLoose$8(props, ["icon", "children", "isRound", "aria-label"]);
+      rest = _objectWithoutPropertiesLoose$7(props, ["icon", "children", "isRound", "aria-label"]);
   /**
    * Passing the icon as prop or children should work
    */
@@ -14758,7 +16250,7 @@ var IconButton = /*#__PURE__*/forwardRef((props, ref) => {
     focusable: false
   }) : null;
 
-  return /*#__PURE__*/react.createElement(Button$1, _extends$q({
+  return /*#__PURE__*/react.createElement(Button$1, _extends$r({
     padding: "0",
     borderRadius: isRound ? "full" : undefined,
     ref: ref,
@@ -14771,13 +16263,13 @@ var [CheckboxGroupProvider, useCheckboxGroupContext] = createContext({
   strict: false
 });
 
-function _objectWithoutPropertiesLoose$9(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$8(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$r() { _extends$r = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$r.apply(this, arguments); }
+function _extends$s() { _extends$s = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$s.apply(this, arguments); }
 
 var MotionSvg = "custom" in motion ? motion.custom(chakra.svg) : motion(chakra.svg);
 
-var CheckIcon = props => /*#__PURE__*/react.createElement(MotionSvg, _extends$r({
+var CheckIcon = props => /*#__PURE__*/react.createElement(MotionSvg, _extends$s({
   width: "1.2em",
   viewBox: "0 0 12 10",
   variants: {
@@ -14803,7 +16295,7 @@ var CheckIcon = props => /*#__PURE__*/react.createElement(MotionSvg, _extends$r(
   points: "1.5 6 4.5 9 10.5 1"
 }));
 
-var IndeterminateIcon = props => /*#__PURE__*/react.createElement(MotionSvg, _extends$r({
+var IndeterminateIcon = props => /*#__PURE__*/react.createElement(MotionSvg, _extends$s({
   width: "1.2em",
   viewBox: "0 0 24 24",
   variants: {
@@ -14874,7 +16366,7 @@ var CheckboxIcon = props => {
     isIndeterminate,
     isChecked
   } = props,
-      rest = _objectWithoutPropertiesLoose$9(props, ["isIndeterminate", "isChecked"]);
+      rest = _objectWithoutPropertiesLoose$8(props, ["isIndeterminate", "isChecked"]);
 
   var IconEl = isIndeterminate ? IndeterminateIcon : CheckIcon;
   return /*#__PURE__*/react.createElement(CheckboxTransition, {
@@ -14882,9 +16374,9 @@ var CheckboxIcon = props => {
   }, /*#__PURE__*/react.createElement(IconEl, rest));
 };
 
-function _extends$s() { _extends$s = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$s.apply(this, arguments); }
+function _extends$t() { _extends$t = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$t.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$a(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$9(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * useCheckbox that provides all the state and focus management logic
@@ -14918,7 +16410,7 @@ function useCheckbox(props) {
     "aria-invalid": ariaInvalid,
     "aria-describedby": ariaDescribedBy
   } = props,
-      htmlProps = _objectWithoutPropertiesLoose$a(props, ["defaultIsChecked", "defaultChecked", "isChecked", "isFocusable", "isDisabled", "isReadOnly", "isRequired", "onChange", "isIndeterminate", "isInvalid", "name", "value", "id", "onBlur", "onFocus", "aria-label", "aria-labelledby", "aria-invalid", "aria-describedby"]);
+      htmlProps = _objectWithoutPropertiesLoose$9(props, ["defaultIsChecked", "defaultChecked", "isChecked", "isFocusable", "isDisabled", "isReadOnly", "isRequired", "onChange", "isIndeterminate", "isInvalid", "name", "value", "id", "onBlur", "onFocus", "aria-label", "aria-labelledby", "aria-invalid", "aria-describedby"]);
 
   var onChangeProp = useCallbackRef(onChange);
   var onBlurProp = useCallbackRef(onBlur);
@@ -15002,7 +16494,7 @@ function useCheckbox(props) {
       setActive.on();
     };
 
-    return _extends$s({}, props, {
+    return _extends$t({}, props, {
       ref: forwardedRef,
       "data-active": dataAttr(isActive),
       "data-hover": dataAttr(isHovered),
@@ -15028,7 +16520,7 @@ function useCheckbox(props) {
       forwardedRef = null;
     }
 
-    return _extends$s({}, htmlProps, props, {
+    return _extends$t({}, htmlProps, props, {
       ref: mergeRefs(forwardedRef, node => {
         if (!node) return;
         setRootIsLabelElement(node.tagName === "LABEL");
@@ -15065,7 +16557,7 @@ function useCheckbox(props) {
       forwardedRef = null;
     }
 
-    return _extends$s({}, props, {
+    return _extends$t({}, props, {
       ref: mergeRefs(inputRef, forwardedRef),
       type: "checkbox",
       name,
@@ -15097,7 +16589,7 @@ function useCheckbox(props) {
       forwardedRef = null;
     }
 
-    return _extends$s({}, props, {
+    return _extends$t({}, props, {
       ref: forwardedRef,
       onMouseDown: callAllHandlers(props.onMouseDown, stopEvent),
       onTouchStart: callAllHandlers(props.onTouchStart, stopEvent),
@@ -15134,9 +16626,9 @@ function stopEvent(event) {
   event.stopPropagation();
 }
 
-function _objectWithoutPropertiesLoose$b(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$a(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$t() { _extends$t = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$t.apply(this, arguments); }
+function _extends$u() { _extends$u = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$u.apply(this, arguments); }
 var CheckboxControl = chakra("span", {
   baseStyle: {
     display: "inline-flex",
@@ -15171,7 +16663,7 @@ var Label = chakra("label", {
 var Checkbox$1 = /*#__PURE__*/forwardRef((props, ref) => {
   var group = useCheckboxGroupContext();
 
-  var mergedProps = _extends$t({}, group, props);
+  var mergedProps = _extends$u({}, group, props);
 
   var styles = useMultiStyleConfig("Checkbox", mergedProps);
   var ownProps = omitThemingProps(props);
@@ -15187,7 +16679,7 @@ var Checkbox$1 = /*#__PURE__*/forwardRef((props, ref) => {
     isDisabled = group == null ? void 0 : group.isDisabled,
     onChange: onChangeProp
   } = ownProps,
-      rest = _objectWithoutPropertiesLoose$b(ownProps, ["spacing", "className", "children", "iconColor", "iconSize", "icon", "isChecked", "isDisabled", "onChange"]);
+      rest = _objectWithoutPropertiesLoose$a(ownProps, ["spacing", "className", "children", "iconColor", "iconSize", "icon", "isChecked", "isDisabled", "onChange"]);
 
   var isChecked = isCheckedProp;
 
@@ -15207,12 +16699,12 @@ var Checkbox$1 = /*#__PURE__*/forwardRef((props, ref) => {
     getCheckboxProps,
     getLabelProps,
     getRootProps
-  } = useCheckbox(_extends$t({}, rest, {
+  } = useCheckbox(_extends$u({}, rest, {
     isDisabled,
     isChecked,
     onChange
   }));
-  var iconStyles = react.useMemo(() => _extends$t({
+  var iconStyles = react.useMemo(() => _extends$u({
     opacity: state.isChecked || state.isIndeterminate ? 1 : 0,
     transform: state.isChecked || state.isIndeterminate ? "scale(1)" : "scale(0.95)",
     fontSize: iconSize,
@@ -15223,28 +16715,28 @@ var Checkbox$1 = /*#__PURE__*/forwardRef((props, ref) => {
     isIndeterminate: state.isIndeterminate,
     isChecked: state.isChecked
   });
-  return /*#__PURE__*/react.createElement(Label, _extends$t({
+  return /*#__PURE__*/react.createElement(Label, _extends$u({
     __css: styles.container,
     className: cx("chakra-checkbox", className)
-  }, getRootProps()), /*#__PURE__*/react.createElement("input", _extends$t({
+  }, getRootProps()), /*#__PURE__*/react.createElement("input", _extends$u({
     className: "chakra-checkbox__input"
-  }, getInputProps({}, ref))), /*#__PURE__*/react.createElement(CheckboxControl, _extends$t({
+  }, getInputProps({}, ref))), /*#__PURE__*/react.createElement(CheckboxControl, _extends$u({
     __css: styles.control,
     className: "chakra-checkbox__control"
-  }, getCheckboxProps()), clonedIcon), children && /*#__PURE__*/react.createElement(chakra.span, _extends$t({
+  }, getCheckboxProps()), clonedIcon), children && /*#__PURE__*/react.createElement(chakra.span, _extends$u({
     className: "chakra-checkbox__label"
   }, getLabelProps(), {
-    __css: _extends$t({
+    __css: _extends$u({
       marginStart: spacing
     }, styles.label)
   }), children));
 });
 
-function _objectWithoutPropertiesLoose$c(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$b(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$u() { _extends$u = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$u.apply(this, arguments); }
+function _extends$v() { _extends$v = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$v.apply(this, arguments); }
 
-var CloseIcon = props => /*#__PURE__*/react.createElement(Icon, _extends$u({
+var CloseIcon = props => /*#__PURE__*/react.createElement(Icon, _extends$v({
   focusable: "false",
   "aria-hidden": true
 }, props), /*#__PURE__*/react.createElement("path", {
@@ -15267,7 +16759,7 @@ var CloseButton$1 = /*#__PURE__*/forwardRef((props, ref) => {
     isDisabled,
     __css
   } = _omitThemingProps,
-      rest = _objectWithoutPropertiesLoose$c(_omitThemingProps, ["children", "isDisabled", "__css"]);
+      rest = _objectWithoutPropertiesLoose$b(_omitThemingProps, ["children", "isDisabled", "__css"]);
 
   var baseStyle = {
     outline: 0,
@@ -15276,12 +16768,12 @@ var CloseButton$1 = /*#__PURE__*/forwardRef((props, ref) => {
     justifyContent: "center",
     flexShrink: 0
   };
-  return /*#__PURE__*/react.createElement(chakra.button, _extends$u({
+  return /*#__PURE__*/react.createElement(chakra.button, _extends$v({
     type: "button",
     "aria-label": "Close",
     ref: ref,
     disabled: isDisabled,
-    __css: _extends$u({}, baseStyle, styles, __css)
+    __css: _extends$v({}, baseStyle, styles, __css)
   }, rest), children || /*#__PURE__*/react.createElement(CloseIcon, {
     width: "1em",
     height: "1em"
@@ -15293,9 +16785,9 @@ var [FormControlProvider, useFormControlContext] = createContext({
   name: "FormControlContext"
 });
 
-function _extends$v() { _extends$v = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$v.apply(this, arguments); }
+function _extends$w() { _extends$w = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$w.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$d(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$c(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * React hook that provides the props that should be spread on to
@@ -15312,9 +16804,9 @@ function useFormControl(props) {
     isReadOnly,
     isRequired
   } = _useFormControlProps,
-      rest = _objectWithoutPropertiesLoose$d(_useFormControlProps, ["isDisabled", "isInvalid", "isReadOnly", "isRequired"]);
+      rest = _objectWithoutPropertiesLoose$c(_useFormControlProps, ["isDisabled", "isInvalid", "isReadOnly", "isRequired"]);
 
-  return _extends$v({}, rest, {
+  return _extends$w({}, rest, {
     disabled: isDisabled,
     readOnly: isReadOnly,
     required: isRequired,
@@ -15340,7 +16832,7 @@ function useFormControlProps(props) {
     onFocus,
     onBlur
   } = props,
-      rest = _objectWithoutPropertiesLoose$d(props, ["id", "disabled", "readOnly", "required", "isRequired", "isInvalid", "isReadOnly", "isDisabled", "onFocus", "onBlur"]);
+      rest = _objectWithoutPropertiesLoose$c(props, ["id", "disabled", "readOnly", "required", "isRequired", "isInvalid", "isReadOnly", "isDisabled", "onFocus", "onBlur"]);
 
   var labelIds = props["aria-describedby"] ? [props["aria-describedby"]] : []; // Error message must be described first in all scenarios.
 
@@ -15352,7 +16844,7 @@ function useFormControlProps(props) {
     labelIds.push(field.helpTextId);
   }
 
-  return _extends$v({}, rest, {
+  return _extends$w({}, rest, {
     "aria-describedby": labelIds.join(" ") || undefined,
     id: id != null ? id : field == null ? void 0 : field.id,
     isDisabled: (_ref = disabled != null ? disabled : isDisabled) != null ? _ref : field == null ? void 0 : field.isDisabled,
@@ -15364,7 +16856,7 @@ function useFormControlProps(props) {
   });
 }
 
-function _extends$w() { _extends$w = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$w.apply(this, arguments); }
+function _extends$x() { _extends$x = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$x.apply(this, arguments); }
 
 /**
  * Input
@@ -15378,7 +16870,7 @@ var Input$1 = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-input", props.className);
 
-  return /*#__PURE__*/react.createElement(chakra.input, _extends$w({}, input, {
+  return /*#__PURE__*/react.createElement(chakra.input, _extends$x({}, input, {
     __css: styles.field,
     ref: ref,
     className: _className
@@ -15396,9 +16888,9 @@ Input$1.id = "Input";
  */
 var Box = chakra("div");
 
-function _extends$x() { _extends$x = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$x.apply(this, arguments); }
+function _extends$y() { _extends$y = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$y.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$e(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$d(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * React component to render inline code snippets.
@@ -15409,21 +16901,21 @@ var Code$1 = /*#__PURE__*/forwardRef((props, ref) => {
   var styles = useStyleConfig("Code", props);
 
   var _omitThemingProps = omitThemingProps(props),
-      rest = _objectWithoutPropertiesLoose$e(_omitThemingProps, ["className"]);
+      rest = _objectWithoutPropertiesLoose$d(_omitThemingProps, ["className"]);
 
-  return /*#__PURE__*/react.createElement(chakra.code, _extends$x({
+  return /*#__PURE__*/react.createElement(chakra.code, _extends$y({
     ref: ref,
     className: cx("chakra-code", props.className)
   }, rest, {
-    __css: _extends$x({
+    __css: _extends$y({
       display: "inline-block"
     }, styles)
   }));
 });
 
-function _extends$y() { _extends$y = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$y.apply(this, arguments); }
+function _extends$z() { _extends$z = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$z.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$f(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$e(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * React component used to create flexbox layouts.
@@ -15443,7 +16935,7 @@ var Flex = /*#__PURE__*/forwardRef((props, ref) => {
     grow,
     shrink
   } = props,
-      rest = _objectWithoutPropertiesLoose$f(props, ["direction", "align", "justify", "wrap", "basis", "grow", "shrink"]);
+      rest = _objectWithoutPropertiesLoose$e(props, ["direction", "align", "justify", "wrap", "basis", "grow", "shrink"]);
 
   var styles = {
     display: "flex",
@@ -15455,22 +16947,22 @@ var Flex = /*#__PURE__*/forwardRef((props, ref) => {
     flexGrow: grow,
     flexShrink: shrink
   };
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$y({
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$z({
     ref: ref,
     __css: styles
   }, rest));
 });
 
-function _extends$z() { _extends$z = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$z.apply(this, arguments); }
+function _extends$A() { _extends$A = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$A.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$g(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$f(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 var Heading$1 = /*#__PURE__*/forwardRef((props, ref) => {
   var styles = useStyleConfig("Heading", props);
 
   var _omitThemingProps = omitThemingProps(props),
-      rest = _objectWithoutPropertiesLoose$g(_omitThemingProps, ["className"]);
+      rest = _objectWithoutPropertiesLoose$f(_omitThemingProps, ["className"]);
 
-  return /*#__PURE__*/react.createElement(chakra.h2, _extends$z({
+  return /*#__PURE__*/react.createElement(chakra.h2, _extends$A({
     ref: ref,
     className: cx("chakra-heading", props.className)
   }, rest, {
@@ -15569,13 +17061,13 @@ function getDividerStyles(options) {
   };
 }
 
-function _objectWithoutPropertiesLoose$h(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$g(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$A() { _extends$A = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$A.apply(this, arguments); }
-var StackItem = props => /*#__PURE__*/react.createElement(chakra.div, _extends$A({
+function _extends$B() { _extends$B = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$B.apply(this, arguments); }
+var StackItem = props => /*#__PURE__*/react.createElement(chakra.div, _extends$B({
   className: "chakra-stack__item"
 }, props, {
-  __css: _extends$A({
+  __css: _extends$B({
     display: "inline-block",
     flex: "0 0 auto",
     minWidth: 0
@@ -15606,7 +17098,7 @@ var Stack = /*#__PURE__*/forwardRef((props, ref) => {
     className,
     shouldWrapChildren
   } = props,
-      rest = _objectWithoutPropertiesLoose$h(props, ["isInline", "direction", "align", "justify", "spacing", "wrap", "children", "divider", "className", "shouldWrapChildren"]);
+      rest = _objectWithoutPropertiesLoose$g(props, ["isInline", "direction", "align", "justify", "spacing", "wrap", "children", "divider", "className", "shouldWrapChildren"]);
 
   var direction = isInline ? "row" : directionProp != null ? directionProp : "column";
   var styles = react.useMemo(() => getStackStyles({
@@ -15644,7 +17136,7 @@ var Stack = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-stack", className);
 
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$A({
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$B({
     ref: ref,
     display: "flex",
     alignItems: align,
@@ -15662,7 +17154,7 @@ var Stack = /*#__PURE__*/forwardRef((props, ref) => {
  */
 
 
-var HStack = /*#__PURE__*/forwardRef((props, ref) => /*#__PURE__*/react.createElement(Stack, _extends$A({
+var HStack = /*#__PURE__*/forwardRef((props, ref) => /*#__PURE__*/react.createElement(Stack, _extends$B({
   align: "center"
 }, props, {
   direction: "row",
@@ -15673,16 +17165,16 @@ var HStack = /*#__PURE__*/forwardRef((props, ref) => /*#__PURE__*/react.createEl
  */
 
 
-var VStack = /*#__PURE__*/forwardRef((props, ref) => /*#__PURE__*/react.createElement(Stack, _extends$A({
+var VStack = /*#__PURE__*/forwardRef((props, ref) => /*#__PURE__*/react.createElement(Stack, _extends$B({
   align: "center"
 }, props, {
   direction: "column",
   ref: ref
 })));
 
-function _extends$B() { _extends$B = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$B.apply(this, arguments); }
+function _extends$C() { _extends$C = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$C.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$i(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$h(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * Used to render texts or paragraphs.
@@ -15693,14 +17185,14 @@ var Text = /*#__PURE__*/forwardRef((props, ref) => {
   var styles = useStyleConfig("Text", props);
 
   var _omitThemingProps = omitThemingProps(props),
-      rest = _objectWithoutPropertiesLoose$i(_omitThemingProps, ["className", "align", "decoration", "casing"]);
+      rest = _objectWithoutPropertiesLoose$h(_omitThemingProps, ["className", "align", "decoration", "casing"]);
 
   var aliasedProps = filterUndefined({
     textAlign: props.align,
     textDecoration: props.decoration,
     textTransform: props.casing
   });
-  return /*#__PURE__*/react.createElement(chakra.p, _extends$B({
+  return /*#__PURE__*/react.createElement(chakra.p, _extends$C({
     ref: ref,
     className: cx("chakra-text", props.className)
   }, aliasedProps, rest, {
@@ -15708,9 +17200,9 @@ var Text = /*#__PURE__*/forwardRef((props, ref) => {
   }));
 });
 
-function _extends$C() { _extends$C = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$C.apply(this, arguments); }
+function _extends$D() { _extends$D = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$D.apply(this, arguments); }
 
-function _objectWithoutPropertiesLoose$j(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$i(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
 /**
  * Layout component used to stack elements that differ in length
@@ -15732,10 +17224,10 @@ var Wrap = /*#__PURE__*/forwardRef((props, ref) => {
     className,
     shouldWrapChildren
   } = props,
-      rest = _objectWithoutPropertiesLoose$j(props, ["spacing", "children", "justify", "direction", "align", "className", "shouldWrapChildren"]);
+      rest = _objectWithoutPropertiesLoose$i(props, ["spacing", "children", "justify", "direction", "align", "className", "shouldWrapChildren"]);
 
   var styles = react.useMemo(() => ({
-    "--chakra-wrap-spacing": theme => mapResponsive(spacing, value => tokenToCSSVar("space", value)(theme)),
+    "--chakra-wrap-spacing": theme => mapResponsive(spacing, value => tokenToCSSVar$1("space", value)(theme)),
     "--wrap-spacing": "calc(var(--chakra-wrap-spacing) / 2)",
     display: "flex",
     flexWrap: "wrap",
@@ -15752,7 +17244,7 @@ var Wrap = /*#__PURE__*/forwardRef((props, ref) => {
   var childrenToRender = shouldWrapChildren ? react.Children.map(children, (child, index) => /*#__PURE__*/react.createElement(WrapItem, {
     key: index
   }, child)) : children;
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$C({
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$D({
     ref: ref,
     className: cx("chakra-wrap", className)
   }, rest), /*#__PURE__*/react.createElement(chakra.ul, {
@@ -15765,9 +17257,9 @@ var WrapItem = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$j(props, ["className"]);
+      rest = _objectWithoutPropertiesLoose$i(props, ["className"]);
 
-  return /*#__PURE__*/react.createElement(chakra.li, _extends$C({
+  return /*#__PURE__*/react.createElement(chakra.li, _extends$D({
     ref: ref,
     __css: {
       display: "flex",
@@ -15777,7 +17269,7 @@ var WrapItem = /*#__PURE__*/forwardRef((props, ref) => {
   }, rest));
 });
 
-function _objectWithoutPropertiesLoose$k(source, excluded) {
+function _objectWithoutPropertiesLoose$j(source, excluded) {
   if (source == null) return {};
   var target = {};
   var sourceKeys = Object.keys(source);
@@ -16199,7 +17691,7 @@ var FocusLock = /*#__PURE__*/react.forwardRef(function FocusLockUI(props, parent
     }
   }, []);
 
-  var lockProps = _extends$G((_extends2 = {}, _extends2[FOCUS_DISABLED] = disabled && 'disabled', _extends2[FOCUS_GROUP] = group, _extends2), containerProps);
+  var lockProps = _extends$H((_extends2 = {}, _extends2[FOCUS_DISABLED] = disabled && 'disabled', _extends2[FOCUS_GROUP] = group, _extends2), containerProps);
 
   var hasLeadingGuards = noFocusGuards !== true;
   var hasTailingGuards = hasLeadingGuards && noFocusGuards !== 'tail';
@@ -16231,7 +17723,7 @@ var FocusLock = /*#__PURE__*/react.forwardRef(function FocusLockUI(props, parent
     onActivation: onActivation,
     onDeactivation: onDeactivation,
     returnFocus: returnFocus
-  }), /*#__PURE__*/react.createElement(Container, _extends$G({
+  }), /*#__PURE__*/react.createElement(Container, _extends$H({
     ref: mergedRef
   }, lockProps, {
     className: className,
@@ -16263,19 +17755,19 @@ FocusLock.defaultProps = {
   onDeactivation: undefined
 };
 
-function _setPrototypeOf(o, p) {
-  _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+function _setPrototypeOf$1(o, p) {
+  _setPrototypeOf$1 = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
     o.__proto__ = p;
     return o;
   };
 
-  return _setPrototypeOf(o, p);
+  return _setPrototypeOf$1(o, p);
 }
 
 function _inheritsLoose(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
   subClass.prototype.constructor = subClass;
-  _setPrototypeOf(subClass, superClass);
+  _setPrototypeOf$1(subClass, superClass);
 }
 
 function _defineProperty(obj, key, value) {
@@ -16995,7 +18487,7 @@ const RequireSideCar = (props) => {
 */
 
 var FocusLockCombination = /*#__PURE__*/react.forwardRef(function FocusLockUICombination(props, ref) {
-  return /*#__PURE__*/react.createElement(FocusLock, _extends$G({
+  return /*#__PURE__*/react.createElement(FocusLock, _extends$H({
     sideCar: FocusTrap,
     ref: ref
   }, props));
@@ -17003,7 +18495,7 @@ var FocusLockCombination = /*#__PURE__*/react.forwardRef(function FocusLockUICom
 
 var _ref = FocusLock.propTypes || {},
     sideCar = _ref.sideCar,
-    propTypes$1 = _objectWithoutPropertiesLoose$k(_ref, ["sideCar"]);
+    propTypes$1 = _objectWithoutPropertiesLoose$j(_ref, ["sideCar"]);
 
 FocusLockCombination.propTypes =  {};
 
@@ -17505,23 +18997,23 @@ var SideCar$1 = exportSidecar(effectCar, RemoveScrollSideCar);
 var ReactRemoveScroll = react.forwardRef(function (props, ref) { return (react.createElement(RemoveScroll, __assign$2({}, props, { ref: ref, sideCar: SideCar$1 }))); });
 ReactRemoveScroll.classNames = RemoveScroll.classNames;
 
-function _objectWithoutPropertiesLoose$l(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$k(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$D() { _extends$D = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$D.apply(this, arguments); }
+function _extends$E() { _extends$E = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$E.apply(this, arguments); }
 var transitions = {
-  slideInBottom: _extends$D({}, slideFadeConfig, {
+  slideInBottom: _extends$E({}, slideFadeConfig, {
     custom: {
       offsetY: 16,
       reverse: true
     }
   }),
-  slideInRight: _extends$D({}, slideFadeConfig, {
+  slideInRight: _extends$E({}, slideFadeConfig, {
     custom: {
       offsetX: 16,
       reverse: true
     }
   }),
-  scale: _extends$D({}, scaleFadeConfig, {
+  scale: _extends$E({}, scaleFadeConfig, {
     custom: {
       initialScale: 0.95,
       reverse: true
@@ -17534,10 +19026,10 @@ var ModalTransition = /*#__PURE__*/react.forwardRef((props, ref) => {
   var {
     preset
   } = props,
-      rest = _objectWithoutPropertiesLoose$l(props, ["preset"]);
+      rest = _objectWithoutPropertiesLoose$k(props, ["preset"]);
 
   var motionProps = transitions[preset];
-  return /*#__PURE__*/react.createElement(Motion, _extends$D({
+  return /*#__PURE__*/react.createElement(Motion, _extends$E({
     ref: ref
   }, motionProps, rest));
 });
@@ -17669,7 +19161,7 @@ function useModalManager(ref, isOpen) {
   }, [isOpen, ref]);
 }
 
-function _extends$E() { _extends$E = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$E.apply(this, arguments); }
+function _extends$F() { _extends$F = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$F.apply(this, arguments); }
 
 /**
  * Modal hook that manages all the logic for the modal dialog widget
@@ -17730,7 +19222,7 @@ function useModal(props) {
       ref = null;
     }
 
-    return _extends$E({
+    return _extends$F({
       role: "dialog"
     }, props, {
       ref: mergeRefs(ref, dialogRef),
@@ -17775,7 +19267,7 @@ function useModal(props) {
       ref = null;
     }
 
-    return _extends$E({}, props, {
+    return _extends$F({}, props, {
       ref: mergeRefs(ref, overlayRef),
       onClick: callAllHandlers(props.onClick, onOverlayClick),
       onKeyDown: callAllHandlers(props.onKeyDown, onKeyDown),
@@ -17822,9 +19314,9 @@ function useAriaHidden(ref, shouldHide) {
   }, [shouldHide, ref]);
 }
 
-function _objectWithoutPropertiesLoose$m(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+function _objectWithoutPropertiesLoose$l(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
 
-function _extends$F() { _extends$F = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$F.apply(this, arguments); }
+function _extends$G() { _extends$G = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends$G.apply(this, arguments); }
 var [ModalContextProvider, useModalContext] = createContext({
   strict: true,
   name: "ModalContext",
@@ -17855,7 +19347,7 @@ var Modal$1 = props => {
   var styles = useMultiStyleConfig("Modal", props);
   var modal = useModal(props);
 
-  var context = _extends$F({}, modal, {
+  var context = _extends$G({}, modal, {
     autoFocus,
     trapFocus,
     initialFocusRef,
@@ -17870,7 +19362,7 @@ var Modal$1 = props => {
 
   return /*#__PURE__*/react.createElement(ModalContextProvider, {
     value: context
-  }, /*#__PURE__*/react.createElement(StylesProvider, {
+  }, /*#__PURE__*/react.createElement(StylesProvider$1, {
     value: styles
   }, /*#__PURE__*/react.createElement(AnimatePresence, null, context.isOpen && /*#__PURE__*/react.createElement(Portal$1, portalProps, children))));
 };
@@ -17897,7 +19389,7 @@ var ModalContent = /*#__PURE__*/forwardRef((props, ref) => {
     children,
     containerProps: rootProps
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["className", "children", "containerProps"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["className", "children", "containerProps"]);
 
   var {
     getDialogProps,
@@ -17908,9 +19400,9 @@ var ModalContent = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-modal__content", className);
 
-  var styles = useStyles();
+  var styles = useStyles$1();
 
-  var dialogStyles = _extends$F({
+  var dialogStyles = _extends$G({
     display: "flex",
     flexDirection: "column",
     position: "relative",
@@ -17918,7 +19410,7 @@ var ModalContent = /*#__PURE__*/forwardRef((props, ref) => {
     outline: 0
   }, styles.dialog);
 
-  var dialogContainerStyles = _extends$F({
+  var dialogContainerStyles = _extends$G({
     display: "flex",
     width: "100vw",
     height: "100vh",
@@ -17933,10 +19425,10 @@ var ModalContent = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     motionPreset
   } = useModalContext();
-  return /*#__PURE__*/react.createElement(ModalFocusScope, null, /*#__PURE__*/react.createElement(chakra.div, _extends$F({}, containerProps, {
+  return /*#__PURE__*/react.createElement(ModalFocusScope, null, /*#__PURE__*/react.createElement(chakra.div, _extends$G({}, containerProps, {
     className: "chakra-modal__content-container",
     __css: dialogContainerStyles
-  }), /*#__PURE__*/react.createElement(ModalTransition, _extends$F({
+  }), /*#__PURE__*/react.createElement(ModalTransition, _extends$G({
     preset: motionPreset,
     className: _className
   }, dialogProps, {
@@ -17989,13 +19481,13 @@ var ModalOverlay = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["className", "transition"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["className", "transition"]);
 
   var _className = cx("chakra-modal__overlay", className);
 
-  var styles = useStyles();
+  var styles = useStyles$1();
 
-  var overlayStyle = _extends$F({
+  var overlayStyle = _extends$G({
     pos: "fixed",
     left: "0",
     top: "0",
@@ -18007,7 +19499,7 @@ var ModalOverlay = /*#__PURE__*/forwardRef((props, ref) => {
     motionPreset
   } = useModalContext();
   var motionProps = motionPreset === "none" ? {} : fadeConfig;
-  return /*#__PURE__*/react.createElement(MotionDiv, _extends$F({}, motionProps, {
+  return /*#__PURE__*/react.createElement(MotionDiv, _extends$G({}, motionProps, {
     __css: overlayStyle,
     ref: ref,
     className: _className
@@ -18025,7 +19517,7 @@ var ModalHeader = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["className"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["className"]);
 
   var {
     headerId,
@@ -18043,13 +19535,13 @@ var ModalHeader = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-modal__header", className);
 
-  var styles = useStyles();
+  var styles = useStyles$1();
 
-  var headerStyles = _extends$F({
+  var headerStyles = _extends$G({
     flex: 0
   }, styles.header);
 
-  return /*#__PURE__*/react.createElement(chakra.header, _extends$F({
+  return /*#__PURE__*/react.createElement(chakra.header, _extends$G({
     ref: ref,
     className: _className,
     id: headerId
@@ -18069,7 +19561,7 @@ var ModalBody = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["className"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["className"]);
 
   var {
     bodyId,
@@ -18087,8 +19579,8 @@ var ModalBody = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-modal__body", className);
 
-  var styles = useStyles();
-  return /*#__PURE__*/react.createElement(chakra.div, _extends$F({
+  var styles = useStyles$1();
+  return /*#__PURE__*/react.createElement(chakra.div, _extends$G({
     ref: ref,
     className: _className,
     id: bodyId
@@ -18105,19 +19597,19 @@ var ModalFooter = /*#__PURE__*/forwardRef((props, ref) => {
   var {
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["className"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["className"]);
 
   var _className = cx("chakra-modal__footer", className);
 
-  var styles = useStyles();
+  var styles = useStyles$1();
 
-  var footerStyles = _extends$F({
+  var footerStyles = _extends$G({
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end"
   }, styles.footer);
 
-  return /*#__PURE__*/react.createElement(chakra.footer, _extends$F({
+  return /*#__PURE__*/react.createElement(chakra.footer, _extends$G({
     ref: ref
   }, rest, {
     __css: footerStyles,
@@ -18137,7 +19629,7 @@ var ModalCloseButton = /*#__PURE__*/forwardRef((props, ref) => {
     onClick,
     className
   } = props,
-      rest = _objectWithoutPropertiesLoose$m(props, ["onClick", "className"]);
+      rest = _objectWithoutPropertiesLoose$l(props, ["onClick", "className"]);
 
   var {
     onClose
@@ -18145,8 +19637,8 @@ var ModalCloseButton = /*#__PURE__*/forwardRef((props, ref) => {
 
   var _className = cx("chakra-modal__close-btn", className);
 
-  var styles = useStyles();
-  return /*#__PURE__*/react.createElement(CloseButton$1, _extends$F({
+  var styles = useStyles$1();
+  return /*#__PURE__*/react.createElement(CloseButton$1, _extends$G({
     ref: ref,
     __css: styles.closeButton,
     className: _className,
